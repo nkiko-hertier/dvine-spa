@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: dvine
+          POSTGRES_PASSWORD: dvine
+          POSTGRES_DB: dvine_spa
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U dvine -d dvine_spa"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://dvine:dvine@localhost:5432/dvine_spa
+      NODE_ENV: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci # runs `prisma generate` via postinstall
+
+      # Schema is owned by hand-written SQL, not `prisma migrate dev` —
+      # see prisma/migrations/README.md for why (triggers, pg_notify, views).
+      - name: Apply SQL migrations
+        env:
+          PGPASSWORD: dvine
+        run: |
+          psql -h localhost -U dvine -d dvine_spa -f sql/001_base_schema.sql
+          psql -h localhost -U dvine -d dvine_spa -f sql/002_clerk_integration_and_fixes.sql
+          psql -h localhost -U dvine -d dvine_spa -f sql/003_realtime_notifications.sql
+
+      - name: Baseline Prisma migration history
+        run: npx prisma migrate resolve --applied 0_init
+
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build

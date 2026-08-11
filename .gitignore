@@ -1,0 +1,12 @@
+# Each workspace (backend/, frontend/) has its own .gitignore for
+# stack-specific rules. These are repo-wide catch-alls.
+node_modules/
+dist/
+build/
+.next/
+coverage/
+.env
+.env.local
+.env.*.local
+*.log
+.DS_Store

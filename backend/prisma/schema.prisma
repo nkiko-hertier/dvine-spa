@@ -1,0 +1,295 @@
+// D'Vine Spa — Prisma schema
+//
+// This was hand-authored against the ACTUAL live schema (verified via
+// `psql \d+` against a real Postgres instance running the three SQL files
+// in order: deepseek_sql_20260810_c2dcb2.sql -> 002_clerk_integration_and_fixes.sql
+// -> 003_realtime_notifications.sql) rather than committed sight-unseen.
+//
+// Prisma is used here as a query layer over a DB whose schema is owned by
+// hand-written SQL migrations (triggers, functions, pg_notify, views) —
+// NOT by `prisma migrate dev`. See prisma/migrations/README.md.
+//
+// To regenerate/verify this file yourself once you have normal internet
+// access (this environment's egress allowlist blocks binaries.prisma.sh,
+// so `prisma db pull` / `generate` couldn't be run here — see chat):
+//   npx prisma db pull   # should produce a schema equivalent to this one
+//   npx prisma generate
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["views", "postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [citext, pg_trgm, uuid_ossp(map: "uuid-ossp")]
+}
+
+// ------------------------------------------------------------
+// Enums
+// ------------------------------------------------------------
+
+enum BookingStatus {
+  new_request
+  contacted
+  confirmed
+  completed
+  cancelled
+  no_show
+
+  @@map("booking_status")
+}
+
+enum CustomerSource {
+  instagram
+  facebook
+  tiktok
+  google
+  website
+  referral
+  hotel
+  corporate
+  walk_in
+  other
+
+  @@map("customer_source")
+}
+
+enum UserRole {
+  admin
+  staff
+
+  @@map("user_role")
+}
+
+// ------------------------------------------------------------
+// Tables
+// ------------------------------------------------------------
+
+model Category {
+  id             String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name           String   @unique @db.VarChar(100)
+  description    String?
+  coverImageUrl  String?  @map("cover_image_url") @db.VarChar(255)
+  isActive       Boolean  @default(true) @map("is_active")
+  displayOrder   Int      @default(0) @map("display_order")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt      DateTime @default(now()) @map("updated_at") @db.Timestamp(6)
+
+  treatments Treatment[]
+
+  @@index([isActive], map: "idx_categories_active")
+  @@index([displayOrder], map: "idx_categories_order")
+  @@map("categories")
+}
+
+model Treatment {
+  id               String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  categoryId       String?  @map("category_id") @db.Uuid
+  name             String   @db.VarChar(100)
+  description      String?
+  durationMinutes  Int      @map("duration_minutes")
+  price            Decimal  @db.Decimal(10, 2)
+  imageUrl         String?  @map("image_url") @db.VarChar(255)
+  benefits         String[]
+  recommendedFor   String[] @map("recommended_for")
+  isActive         Boolean  @default(true) @map("is_active")
+  displayOrder     Int      @default(0) @map("display_order")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt        DateTime @default(now()) @map("updated_at") @db.Timestamp(6)
+
+  category        Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  bookingRequests BookingRequest[]
+
+  @@index([categoryId], map: "idx_treatments_category")
+  @@index([isActive], map: "idx_treatments_active")
+  @@index([displayOrder], map: "idx_treatments_order")
+  @@index([name], map: "idx_treatments_name")
+  @@map("treatments")
+}
+
+model Customer {
+  id              String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  fullName        String    @map("full_name") @db.VarChar(100)
+  phoneNumber     String    @unique @map("phone_number") @db.VarChar(20)
+  whatsappNumber  String?   @map("whatsapp_number") @db.VarChar(20)
+  source          CustomerSource?
+  customerSince   DateTime  @default(now()) @map("customer_since") @db.Timestamp(6)
+  notes           String?
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt       DateTime  @default(now()) @map("updated_at") @db.Timestamp(6)
+
+  bookingRequests BookingRequest[]
+
+  @@index([phoneNumber], map: "idx_customers_phone")
+  @@index([source], map: "idx_customers_source")
+  @@index([customerSince], map: "idx_customers_since")
+  @@map("customers")
+}
+
+model BookingRequest {
+  id                  String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  requestReference    String         @unique @map("request_reference") @db.VarChar(20)
+  customerId          String         @map("customer_id") @db.Uuid
+  treatmentId         String         @map("treatment_id") @db.Uuid
+  preferredDate       DateTime       @map("preferred_date") @db.Date
+  preferredTime       DateTime       @map("preferred_time") @db.Time(6)
+  status              BookingStatus  @default(new_request)
+  staffNotes          String?        @map("staff_notes")
+  confirmedDate       DateTime?      @map("confirmed_date") @db.Date
+  confirmedTime       DateTime?      @map("confirmed_time") @db.Time(6)
+  contactedAt         DateTime?      @map("contacted_at") @db.Timestamp(6)
+  confirmedAt         DateTime?      @map("confirmed_at") @db.Timestamp(6)
+  completedAt         DateTime?      @map("completed_at") @db.Timestamp(6)
+  cancelledAt         DateTime?      @map("cancelled_at") @db.Timestamp(6)
+  cancellationReason  String?        @map("cancellation_reason")
+  createdAt           DateTime       @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt           DateTime       @default(now()) @map("updated_at") @db.Timestamp(6)
+  channel             CustomerSource @default(website)
+
+  customer  Customer   @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  treatment Treatment  @relation(fields: [treatmentId], references: [id], onDelete: Restrict)
+  auditLogs AuditLog[]
+
+  @@index([customerId], map: "idx_booking_requests_customer")
+  @@index([treatmentId], map: "idx_booking_requests_treatment")
+  @@index([status], map: "idx_booking_requests_status")
+  @@index([preferredDate], map: "idx_booking_requests_date")
+  @@index([createdAt], map: "idx_booking_requests_created")
+  @@index([channel], map: "idx_booking_requests_channel")
+  @@index([status, preferredDate], map: "idx_booking_requests_status_date")
+  @@map("booking_requests")
+}
+
+model Staff {
+  id           String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  email        String    @unique @db.Citext
+  passwordHash String?   @map("password_hash") @db.VarChar(255) // deprecated — Clerk owns auth, see column comment in DB
+  fullName     String    @map("full_name") @db.VarChar(100)
+  role         UserRole  @default(staff)
+  phoneNumber  String?   @map("phone_number") @db.VarChar(20)
+  isActive     Boolean   @default(true) @map("is_active")
+  lastLogin    DateTime? @map("last_login") @db.Timestamp(6)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt    DateTime  @default(now()) @map("updated_at") @db.Timestamp(6)
+  clerkUserId  String?   @unique @map("clerk_user_id") @db.VarChar(64)
+
+  auditLogs AuditLog[]
+
+  @@index([isActive], map: "idx_staff_active")
+  @@index([clerkUserId], map: "idx_staff_clerk_user_id")
+  @@map("staff")
+}
+
+model AuditLog {
+  id                String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId            String?        @map("user_id") @db.Uuid
+  bookingRequestId  String?        @map("booking_request_id") @db.Uuid
+  action            String         @db.VarChar(100)
+  oldStatus         BookingStatus? @map("old_status")
+  newStatus         BookingStatus? @map("new_status")
+  notes             String?
+  ipAddress         String?        @map("ip_address") @db.VarChar(45)
+  userAgent         String?        @map("user_agent")
+  createdAt         DateTime       @default(now()) @map("created_at") @db.Timestamp(6)
+
+  user           Staff?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  bookingRequest BookingRequest? @relation(fields: [bookingRequestId], references: [id], onDelete: Cascade)
+
+  @@index([bookingRequestId], map: "idx_audit_booking")
+  @@index([userId], map: "idx_audit_user")
+  @@index([createdAt], map: "idx_audit_created")
+  @@map("audit_logs")
+}
+
+/// Idempotency log for inbound webhooks (Clerk today, others later).
+/// Written to directly by the webhook handler in Phase 2 — not by triggers.
+model WebhookEvent {
+  id            String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  provider      String    @default("clerk") @db.VarChar(30)
+  eventId       String    @map("event_id") @db.VarChar(100)
+  eventType     String    @map("event_type") @db.VarChar(100)
+  payload       Json
+  status        String    @default("received") @db.VarChar(20) // received | processed | failed
+  errorMessage  String?   @map("error_message")
+  processedAt   DateTime? @map("processed_at") @db.Timestamp(6)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+
+  @@unique([provider, eventId], map: "webhook_events_provider_event_id_key")
+  @@index([status], map: "idx_webhook_events_status")
+  @@index([eventType], map: "idx_webhook_events_type")
+  @@map("webhook_events")
+}
+
+/// Backing store for the atomic request_reference generator
+/// (see generate_request_reference() in 002_clerk_integration_and_fixes.sql).
+/// Not written to directly by application code — the DB trigger owns it.
+model RequestReferenceCounter {
+  yearPart String @id @map("year_part") @db.VarChar(4)
+  lastSeq  Int    @default(0) @map("last_seq")
+
+  @@map("request_reference_counters")
+}
+
+// ------------------------------------------------------------
+// Views (read-only — defined in SQL, §4 of the base schema)
+// ------------------------------------------------------------
+
+view BookingRequestDetail {
+  id               String    @db.Uuid
+  requestReference String    @map("request_reference") @db.VarChar(20)
+  customerName     String?   @map("customer_name") @db.VarChar(100)
+  customerPhone    String?   @map("customer_phone") @db.VarChar(20)
+  customerWhatsapp String?   @map("customer_whatsapp") @db.VarChar(20)
+  customerSource   CustomerSource? @map("customer_source")
+  treatmentName    String?   @map("treatment_name") @db.VarChar(100)
+  treatmentPrice   Decimal?  @map("treatment_price") @db.Decimal(10, 2)
+  durationMinutes  Int?      @map("duration_minutes")
+  categoryName     String?   @map("category_name") @db.VarChar(100)
+  preferredDate    DateTime  @map("preferred_date") @db.Date
+  preferredTime    DateTime  @map("preferred_time") @db.Time(6)
+  status           BookingStatus?
+  staffNotes       String?   @map("staff_notes")
+  confirmedDate    DateTime? @map("confirmed_date") @db.Date
+  confirmedTime    DateTime? @map("confirmed_time") @db.Time(6)
+  contactedAt      DateTime? @map("contacted_at") @db.Timestamp(6)
+  confirmedAt      DateTime? @map("confirmed_at") @db.Timestamp(6)
+  createdAt        DateTime? @map("created_at") @db.Timestamp(6)
+  isResolved       Boolean?  @map("is_resolved")
+
+  @@id([id])
+  @@map("booking_request_details")
+}
+
+view CustomerSummary {
+  id                    String    @db.Uuid
+  fullName              String    @map("full_name") @db.VarChar(100)
+  phoneNumber           String    @map("phone_number") @db.VarChar(20)
+  whatsappNumber        String?   @map("whatsapp_number") @db.VarChar(20)
+  source                CustomerSource?
+  customerSince         DateTime? @map("customer_since") @db.Timestamp(6)
+  totalRequests         BigInt?   @map("total_requests")
+  totalVisits           BigInt?   @map("total_visits")
+  lastVisitDate         DateTime? @map("last_visit_date") @db.Date
+  mostRecentTreatment   String?   @map("most_recent_treatment") @db.VarChar(100)
+  pendingRequests       BigInt?   @map("pending_requests")
+  lastActivity          DateTime? @map("last_activity") @db.Timestamp(6)
+
+  @@id([id])
+  @@map("customer_summary")
+}
+
+view DailyRequestsSummary {
+  requestDate  DateTime @map("request_date") @db.Date
+  totalRequests BigInt? @map("total_requests")
+  newRequests   BigInt? @map("new_requests")
+  contacted     BigInt?
+  confirmed     BigInt?
+  completed     BigInt?
+  cancelled     BigInt?
+  noShow        BigInt?  @map("no_show")
+
+  @@id([requestDate])
+  @@map("daily_requests_summary")
+}
