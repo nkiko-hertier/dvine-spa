@@ -3,6 +3,15 @@ import { env } from './config/env.js';
 import { logger } from './lib/logger.js';
 import { disconnectPrisma } from './lib/prisma.js';
 
+if (!env.CLERK_SECRET_KEY || !env.CLERK_PUBLISHABLE_KEY) {
+  logger.warn(
+    'CLERK_SECRET_KEY / CLERK_PUBLISHABLE_KEY not set — /admin/* routes will fail on every request until these are configured.',
+  );
+}
+if (!env.CLERK_WEBHOOK_SECRET) {
+  logger.warn('CLERK_WEBHOOK_SECRET not set — POST /webhooks/clerk will reject every delivery until this is configured.');
+}
+
 const app = createApp();
 
 const server = app.listen(env.PORT, () => {

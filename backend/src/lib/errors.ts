@@ -64,6 +64,14 @@ export class AppError extends Error {
     return new AppError(ErrorCode.CONFLICT, message);
   }
 
+  static unprocessable(message: string) {
+    return new AppError(ErrorCode.UNPROCESSABLE, message);
+  }
+
+  static internal(message = 'Something went wrong on our end.') {
+    return new AppError(ErrorCode.INTERNAL_ERROR, message);
+  }
+
   static validation(message: string, details?: ErrorDetail[]) {
     return new AppError(ErrorCode.VALIDATION_ERROR, message, details);
   }

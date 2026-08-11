@@ -41,79 +41,94 @@ Tracks build-out of the backend described in `API_DOCUMENTATION.md`, `002_clerk_
 
 ---
 
-## Phase 2 — Auth (Clerk)
+## Phase 2 — Auth (Clerk) ✅ (code complete; live Clerk test still needed)
 
 Ref: `API_DOCUMENTATION.md` §2, §3
 
-- [ ] Clerk project set up; JWT template `spa-api` with `role` claim from `public_metadata.role`
-- [ ] `requireAuth` middleware (§2.3) on all `/admin/*` routes
-- [ ] `requireRole('admin')` middleware on `/admin/staff/*`
-- [ ] Resolve Clerk `sub` → local `staff` row on every authenticated request (attach `req.staff`)
-- [ ] `webhook_events` idempotency check wired in (insert-or-skip before processing)
-- [ ] `POST /webhooks/clerk` — Svix verification + routing to handlers for `user.created`, `user.updated`, `user.deleted`, `session.created` (§3.3–3.4)
-- [ ] Configure the four events in Clerk Dashboard → Webhooks, pointed at the deployed URL
-- [ ] Manual test: invite a staff user → accept → confirm `staff` row appears with correct `role`
+- [x] `requireAuth` middleware (§2.3) on all `/admin/*` routes — `src/middleware/auth.ts`, resolves Clerk `sub` → local `staff` row, 403s on missing/inactive staff
+- [x] `requireRole('admin')` middleware on `/admin/staff/*`
+- [x] `webhook_events` idempotency check wired in (insert-or-skip via unique constraint, P2002-specific — not a catch-all)
+- [x] `POST /webhooks/clerk` — Svix verification + routing to handlers for `user.created`, `user.updated`, `user.deleted`, `session.created` (§3.3–3.4) — `src/routes/webhooks.ts`
+- [ ] Clerk project set up; JWT template `spa-api` with `role` claim from `public_metadata.role` — **your action**, needs a real Clerk account
+- [ ] Configure the four events in Clerk Dashboard → Webhooks, pointed at the deployed URL — **your action**
+- [ ] Manual test: invite a staff user → accept → confirm `staff` row appears with correct `role` — **your action**, needs live Clerk
 
 **Done when:** an invited user can sign in via Clerk, hit an `/admin` route, and be correctly identified/role-checked server-side; a deleted Clerk user is soft-deactivated via webhook.
+**Status:** Code written and lint-clean; startup now warns loudly if `CLERK_SECRET_KEY`/`CLERK_WEBHOOK_SECRET` are unset rather than failing silently on first request. Could not be tested against a real Clerk instance (no account configured) — the unchecked items above need you to actually do them, this can't be verified from code alone.
 
 ---
 
-## Phase 3 — Public Endpoints (no auth)
+## Phase 3 — Public Endpoints (no auth) ✅
 
 Ref: `API_DOCUMENTATION.md` §5–6, §8.1–8.2
 
-- [ ] `GET /categories`, `GET /categories/:id`, `GET /categories/:id/treatments`
-- [ ] `GET /treatments` (filters: `category_id`, `search`, `min/max_price`, `min/max_duration`, `sort`, pagination)
-- [ ] `GET /treatments/:id`
-- [ ] `POST /booking-requests` — customer upsert-by-phone, treatment validation, `Idempotency-Key` support
-- [ ] `GET /booking-requests/lookup` — reference + phone match, generic 404 on mismatch
-- [ ] Per-IP rate limiting (§4.5): 60 req/min general, 5 req/min on booking creation
-- [ ] Input validation layer (Zod recommended — pairs with future OpenAPI generation, see Phase 7)
+- [x] `GET /categories`, `GET /categories/:id`, `GET /categories/:id/treatments`
+- [x] `GET /treatments` (filters: `category_id`, `search`, `min/max_price`, `min/max_duration`, `sort`, pagination)
+- [x] `GET /treatments/:id`
+- [x] `POST /booking-requests` — customer upsert-by-phone, treatment validation, `Idempotency-Key` support (in-memory store — see `src/lib/idempotency.ts` for the documented single-instance limitation)
+- [x] `GET /booking-requests/lookup` — reference + phone match, generic 404 on mismatch
+- [x] Per-IP rate limiting (§4.5): 60 req/min general (`publicLimiter`), 5 req/min on booking creation (`bookingCreateLimiter`, scoped to just `POST /booking-requests` so it doesn't also throttle `GET /lookup`)
+- [x] Input validation layer — Zod, `src/schemas/index.ts`
 
 **Done when:** the public booking widget can list treatments and submit a request end-to-end against a real DB, with rate limits and idempotency verified by test.
+**Status:** Code complete, lint-clean. Not run against a live DB in this environment (same Prisma-engine sandbox restriction as Phase 1) — should be exercised for real against the seeded local Postgres before considering this fully done.
 
 ---
 
-## Phase 4 — Admin Endpoints: Core Resources
+## Phase 4 — Admin Endpoints: Core Resources ✅
 
 Ref: `API_DOCUMENTATION.md` §5, §6, §7
 
-- [ ] `GET/POST/PATCH/DELETE /admin/categories` (soft delete + `?cascade=true`)
-- [ ] `GET/POST/PATCH/DELETE /admin/treatments` (soft delete, DB check-constraint errors mapped to `422`)
-- [ ] `GET /admin/customers` (search, source filter, `has_pending`, sort, pagination)
-- [ ] `GET /admin/customers/:id` (summary view + embedded recent bookings)
-- [ ] `PATCH /admin/customers/:id`
+- [x] `GET/POST/PATCH/DELETE /admin/categories` (soft delete + `?cascade=true`)
+- [x] `GET/POST/PATCH/DELETE /admin/treatments` (soft delete, DB check-constraint violation P2010 mapped to `422`)
+- [x] `GET /admin/customers` (search, source filter, `has_pending`, sort, pagination)
+- [x] `GET /admin/customers/:id` (summary view + embedded recent bookings)
+- [x] `PATCH /admin/customers/:id`
 
 **Done when:** dashboard CRUD screens for categories/treatments/customers work against these endpoints with correct filters and pagination `meta`.
+**Status:** Code complete. See the "two categories of bugs" note at the bottom of this section — both affected these endpoints and were fixed.
 
 ---
 
-## Phase 5 — Admin Endpoints: Booking Requests & Audit
+## Phase 5 — Admin Endpoints: Booking Requests & Audit ✅
 
 Ref: `API_DOCUMENTATION.md` §8.3–8.5, §10, §11
 
-- [ ] `GET /admin/booking-requests` (all filters in §8.3: status[], treatment/category/customer id, channel, date ranges, search, sort, pagination)
-- [ ] `GET /admin/booking-requests/:id` (+ embedded `audit_trail`)
-- [ ] `PATCH /admin/booking-requests/:id` — **status state machine enforced in code** (§8.5 diagram); `cancellation_reason` required when cancelling; DB triggers handle timestamps/audit automatically, don't set them manually
-- [ ] `GET /admin/audit-logs` (filters: booking_request_id, user_id, action, date range)
-- [ ] `GET /admin/dashboard/summary` (backed by `daily_requests_summary`)
-- [ ] `GET /admin/dashboard/stats`
+- [x] `GET /admin/booking-requests` (all filters in §8.3: status[], treatment/category/customer id, channel, date ranges, search, sort, pagination)
+- [x] `GET /admin/booking-requests/:id` (+ embedded `audit_trail`)
+- [x] `PATCH /admin/booking-requests/:id` — **status state machine enforced in code** (`src/lib/bookingStatusMachine.ts`, matches the §8.5 diagram exactly, e.g. `completed → new_request` correctly rejected with `409`); `cancellation_reason` required when cancelling (enforced by the Zod schema's `.refine`); DB triggers handle timestamps/audit automatically, code never sets them manually
+- [x] `GET /admin/audit-logs` (filters: booking_request_id, user_id, action, date range)
+- [x] `GET /admin/dashboard/summary` (backed by `daily_requests_summary`)
+- [x] `GET /admin/dashboard/stats`
 
 **Done when:** the full booking pipeline (new → contacted → confirmed → completed, plus cancel/no-show branches) works from the dashboard, invalid transitions return `409`, and every status change produces an `audit_logs` row automatically.
+**Status:** Code complete. This is where the BigInt bug (below) was caught — `daily_requests_summary`'s `COUNT()` columns and `customer_summary`'s counts come back from Prisma as `BigInt`, which `res.json()` cannot serialize at all (throws, not just wrong output). Fixed via `src/lib/serializers.ts`.
 
 ---
 
-## Phase 6 — Staff Management
+## Phase 6 — Staff Management ✅
 
 Ref: `API_DOCUMENTATION.md` §9
 
-- [ ] `GET /admin/staff` (admin only)
-- [ ] `POST /admin/staff/invite` (admin only) — calls `clerkClient.invitations.createInvitation`
-- [ ] `PATCH /admin/staff/:id` (admin only) — role change also updates Clerk `public_metadata.role`
-- [ ] `DELETE /admin/staff/:id` (admin only) — soft delete + revoke active Clerk sessions
-- [ ] Confirm `password_hash`/`clerk_user_id` never leak in any response payload
+- [x] `GET /admin/staff` (admin only)
+- [x] `POST /admin/staff/invite` (admin only) — calls `clerkClient.invitations.createInvitation`; the invite's `full_name` is threaded through as `public_metadata.pending_full_name` so the `user.created` webhook has a name to fall back on before the user has set one in Clerk
+- [x] `PATCH /admin/staff/:id` (admin only) — role change also updates Clerk `public_metadata.role` (best-effort: logs and continues on Clerk API failure rather than failing the whole request, since the DB is the record of truth and the next webhook/retry reconciles it)
+- [x] `DELETE /admin/staff/:id` (admin only) — soft delete + revoke active Clerk sessions
+- [x] Confirm `password_hash`/`clerk_user_id` never leak in any response payload — `serializeStaff()` is an explicit allow-list, not a spread of the Prisma row, so this can't regress silently by a future field being added to the schema
 
 **Done when:** an admin can invite, promote/demote, and deactivate staff entirely from the dashboard, with Clerk and the local `staff` table staying in sync in both directions.
+**Status:** Code complete, lint-clean. `clerkClient.sessions.getSessionList`/`revokeSession` calls are written to the Clerk Backend SDK's documented shape but unverified against a live Clerk instance — flag if the exact method signature has changed since training.
+
+---
+
+### Two categories of real bugs found and fixed across Phases 2–6
+
+Both were caught by systematically re-checking implementation against `API_DOCUMENTATION.md`'s actual JSON examples, not by running the code (couldn't — see Phase 1's Prisma-engine sandbox limitation, same constraint applies here):
+
+1. **Request-body field naming mismatch.** Zod schemas were initially written in `camelCase` (`full_name` → `fullName`), but `API_DOCUMENTATION.md`'s documented request bodies are `snake_case` throughout (`cover_image_url`, `treatment_id`, etc.) — a real contract break that would have silently rejected every correctly-formed request from a frontend built against the docs. Fixed by rewriting `src/schemas/index.ts` to snake_case and explicitly mapping validated input to Prisma's camelCase columns at each call site (see any admin route's `.create`/`.update` calls).
+2. **Response field naming + a hard BigInt crash.** The inverse problem on the way out: several admin list/detail endpoints (categories, treatments, customers, audit logs, dashboard summary) were returning raw Prisma objects (camelCase) instead of the documented snake_case shape. Worse, `customer_summary`/`daily_requests_summary`'s `COUNT()` columns come back from Prisma as `BigInt`, which `res.json()` cannot serialize — an actual runtime crash on first use, not just a cosmetic mismatch. Fixed with a shared `src/lib/serializers.ts` (explicit allow-list mapping + `BigInt→Number` conversion for every one of these endpoints, including nested cases like the `audit_trail` embedded in booking-request detail, and a separate `serializePublicTreatment` vs. admin `serializeTreatment` so public endpoints don't leak `is_active`/timestamps).
+
+**Neither bug would have been caught by `npm run typecheck`/`build`** even with the Prisma client generated — both are shape/contract mismatches TypeScript has no way to know about (the code was internally type-consistent, just wrong against the documented contract). Worth keeping in mind for Phase 9: a contract test that runs real requests against a running server and asserts on the actual JSON shape (not just status codes) would have caught both automatically, and should be added.
 
 ---
 
@@ -180,3 +195,5 @@ Ref: `API_DOCUMENTATION.md` top-of-file TODO note
 | Role-scoped realtime rooms (e.g. only admins get cancellation alerts) vs. single shared `dashboard` room | Phase 7 | Currently spec'd as single room — confirm or revisit |
 | Host: Railway vs. Render vs. Fly.io | Phase 0, 10 | Open |
 | Confirm `npx prisma generate` succeeds against `schema.prisma` in a real (non-sandboxed) environment | Phase 1 | Needs you to run it once — see Phase 1 status note |
+| Run Phases 2–6 against a real Clerk project + seeded DB (not just lint-verified) | Phase 2–6 | Needs a live Clerk account + `npx prisma generate` first — see Phase 2 status note |
+| Add a response-shape contract test (real HTTP request → assert actual JSON keys) | Phase 9 | Would have caught both Phase 2–6 bugs automatically — recommend adding before Phase 9 is considered done |
