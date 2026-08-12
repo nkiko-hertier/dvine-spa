@@ -1,6 +1,9 @@
 import { PrismaClient, BookingStatus } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg'
 
-const prisma = new PrismaClient();
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
+
+const prisma = new PrismaClient(adapter);
 
 /**
  * Idempotent: safe to run repeatedly (upserts on natural keys). Mirrors the
