@@ -37,7 +37,14 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY prisma ./prisma/
 
-RUN npm ci --omit=dev --ignore-scripts
+# RUN npm ci --omit=dev --ignore-scripts
+RUN apk add --no-cache python3 make g++
+RUN npm ci --legecy-peer-deps 
+
+RUN apk add --no-cache postgresql python3 make g++
+RUN npm ci -omit=dev --ignore-scripts --legecy-peer-deps 
+
+
 
 # Copy the Prisma-generated client (native binaries + JS types)
 # from the builder — avoids needing the prisma CLI at runtime
