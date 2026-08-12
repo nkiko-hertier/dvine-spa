@@ -132,32 +132,34 @@ Both were caught by systematically re-checking implementation against `API_DOCUM
 
 ---
 
-## Phase 7 — Realtime (WebSocket)
+## Phase 7 — Realtime (WebSocket) ✅ (code complete; live 2-client test still needed)
 
 Ref: `API_DOCUMENTATION.md` §12
 
-- [ ] Socket.IO server mounted on the same HTTP server as Express
-- [ ] Handshake auth middleware (Clerk token verification, §12.2)
-- [ ] `pg` `LISTEN` client for `booking_updates` + `dashboard_notifications`, re-broadcast via `io.to('dashboard').emit(...)`
-- [ ] Listener reconnect-on-drop logic (`pgListener.on('error', ...)`)
-- [ ] Dashboard client: connect with Clerk token, `booking:updated` → invalidate relevant queries, `notification:new` → toast + badge
-- [ ] Resync-on-reconnect: refetch current view on every `connect` event, not just the first
-- [ ] (Deferred until multi-instance) `@socket.io/redis-adapter` — leave a tracking issue, don't build until needed
+- [x] Socket.IO server mounted on the same HTTP server as Express — `src/realtime/socket.ts`, attached to the same `server` returned by `app.listen()` in `src/index.ts`, never a second server
+- [x] Handshake auth middleware (Clerk token verification, §12.2) — uses `verifyToken()` directly (not the HTTP-request-shaped `clerkMiddleware()`) plus the same `resolveActiveStaff()` helper `requireAuth` uses, refactored out of `middleware/auth.ts` into `lib/resolveStaff.ts` so HTTP and socket auth can't drift apart
+- [x] `pg` `LISTEN` client for `booking_updates` + `dashboard_notifications`, re-broadcast via `io.to('dashboard').emit(...)` — `src/realtime/pgListener.ts`
+- [x] Listener reconnect-on-drop logic — handles both `error` and unexpected `end` events, re-issues `LISTEN` on every reconnect (required — `pg` doesn't remember subscriptions across a dropped connection)
+- [ ] Dashboard client: connect with Clerk token, `booking:updated` → invalidate relevant queries, `notification:new` → toast + badge — **frontend work**, not in this repo
+- [ ] Resync-on-reconnect: refetch current view on every `connect` event — **frontend work**
+- [ ] (Deferred until multi-instance) `@socket.io/redis-adapter` — correctly not built yet, per the doc's own guidance
 
 **Done when:** two dashboard sessions open at once — a status change or new request in one shows up live in the other within ~1s, and killing/restoring the network connection resyncs correctly.
+**Status:** Backend code complete and lint-clean. Genuinely **not yet tested against a live connection** — needs a real Clerk token and a running Postgres with the Phase 1 triggers, neither of which exist in the sandbox this was built in. The two unchecked items above are frontend responsibilities once that repo exists, not gaps in this one.
 
 ---
 
-## Phase 8 — API Docs (Swagger / OpenAPI)
+## Phase 8 — API Docs (Swagger / OpenAPI) ✅
 
 Ref: `API_DOCUMENTATION.md` top-of-file TODO note
 
-- [ ] Generate OpenAPI 3.1 spec from the Zod validators (`zod-to-openapi`) rather than hand-writing YAML, so it can't drift from actual request/response validation
-- [ ] Serve Swagger UI at `/docs` (`swagger-ui-express`), gated behind basic auth or internal-only in production if the API is public-facing
-- [ ] Cross-check generated spec against `API_DOCUMENTATION.md` — resolve any mismatch in the markdown, not the spec (the spec is generated from code = ground truth)
-- [ ] Link `/docs` from the README
+- [x] Generate OpenAPI 3.1 spec from the Zod validators (`zod-to-openapi`) rather than hand-writing YAML — `src/openapi/`, request bodies reuse the exact schemas from `src/schemas/index.ts` (not a re-typed copy), so the two genuinely cannot drift
+- [x] Serve Swagger UI at `/docs` (`swagger-ui-express`) — `src/routes/docs.ts`, plus raw spec at `/openapi.json`. **Not** gated behind auth yet — flagged inline in `app.ts` as a deployment decision to make before going to production if the API itself is public-facing
+- [x] Cross-check generated spec against `API_DOCUMENTATION.md` — spot-checked `POST /booking-requests`' generated request schema by actually running the generator (see status note); confirmed the snake_case field names match
+- [x] Link `/docs` from the README
 
 **Done when:** `/docs` renders every endpoint in this document with accurate request/response schemas, generated automatically from the same validators the routes use.
+**Status:** This is the one piece of Phases 2-8 that has **zero Prisma dependency** (pure Zod + zod-to-openapi), so unlike everything else, it was actually executed and verified in this sandbox, not just lint-checked: ran the generator directly, confirmed **all 30 documented operations across 21 paths** are present (not a partial/representative subset), and inspected the generated `POST /booking-requests` body schema to confirm the snake_case fix from Phase 2-6 flows through correctly. Still needs a visual check of `/docs` rendering in a browser and a decision on whether to gate it in production.
 
 ---
 
@@ -168,6 +170,8 @@ Ref: `API_DOCUMENTATION.md` top-of-file TODO note
 - [ ] Load-test `POST /booking-requests` for the request-reference race condition fix (concurrent inserts, same year) — confirms `003`'s counter-table fix holds under load
 - [ ] Verify rate limiting and idempotency-key behavior under concurrent duplicate requests
 - [ ] Security pass: confirm public endpoints can't reach `/admin/*` data, confirm `staff` role checks on every mutating admin route, confirm webhook route rejects bad/missing Svix signatures
+- [ ] **New, from Phase 2-6 review:** response-shape contract test (real HTTP request → assert actual JSON keys, not just status code) — would have caught both the snake_case and BigInt-serialization bugs automatically; see task list bottom note in Phase 5/6 section above
+- [ ] **New, from this sandbox's limitations:** the full Phase 2-8 codebase has been lint-verified and, for the OpenAPI piece, execution-verified — but never `typecheck`/`build`/integration-tested with a real generated Prisma client or a live Clerk project. That first real `npm run typecheck` after `prisma generate` is likely to surface at least minor issues (even well-reviewed TypeScript regularly has small type mismatches invisible without the compiler) — budget time for it, don't assume Phase 9 starts from a clean slate
 
 **Done when:** CI runs the full suite green, and the race-condition and auth-bypass cases specifically have tests guarding them (these are the two things most likely to regress silently).
 

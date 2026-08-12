@@ -1,8 +1,8 @@
 import type { RequestHandler } from 'express';
 import { getAuth } from '@clerk/express';
 import { UserRole } from '@prisma/client';
-import { prisma } from '../lib/prisma.js';
 import { AppError } from '../lib/errors.js';
+import { resolveActiveStaff } from '../lib/resolveStaff.js';
 
 /**
  * Requires a valid Clerk session AND a matching, active `staff` row.
@@ -20,8 +20,8 @@ export const requireAuth: RequestHandler = async (req, _res, next) => {
       throw AppError.unauthorized();
     }
 
-    const staff = await prisma.staff.findUnique({ where: { clerkUserId: userId } });
-    if (!staff || !staff.isActive) {
+    const staff = await resolveActiveStaff(userId);
+    if (!staff) {
       // A verified Clerk session with no (or a deactivated) local staff
       // row is a config/sync problem, not a credentials problem — but
       // from the caller's point of view it's still "you can't do this."

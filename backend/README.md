@@ -24,27 +24,45 @@ prisma/
     migration_lock.toml
     0_init/migration.sql   # concatenation of sql/001-003, checked in for the record
 src/
-  index.ts                 # process entry point, starts the HTTP server
+  index.ts                 # process entry point, starts the HTTP server + realtime
   app.ts                   # Express app assembly (middleware + route mounting)
   config/env.ts             # env var loading & validation (zod)
   lib/
     prisma.ts               # PrismaClient singleton
+    resolveStaff.ts          # shared Clerk-user-id -> active staff lookup (HTTP + socket auth)
     response.ts              # success/pagination envelope helpers
+    serializers.ts            # snake_case response mapping (incl. BigInt->Number for view COUNT columns)
     errors.ts                 # AppError + error codes, matches docs/API_DOCUMENTATION.md §4.2
     logger.ts                  # pino logger instance
+    bookingStatusMachine.ts     # enforces the status transition diagram (§8.5)
+    idempotency.ts               # in-memory Idempotency-Key store (§4.6)
+    time.ts                       # HH:MM <-> Date helper for Postgres TIME columns
+    validate.ts                    # Zod parse-or-throw helper
+    queryParams.ts                  # list-endpoint filter/sort/pagination parsing
   middleware/
-    errorHandler.ts            # global error handler + 404 handler
+    auth.ts                   # requireAuth / requireRole (Clerk)
+    rateLimit.ts                # public/booking/admin rate limiters (§4.5)
+    errorHandler.ts              # global error handler + 404 handler
+  schemas/index.ts            # Zod request validation (snake_case wire format — see note below)
   routes/
     health.ts                   # GET /health (includes DB connectivity check)
+    docs.ts                      # GET /docs (Swagger UI), GET /openapi.json
+    webhooks.ts                   # POST /webhooks/clerk
+    categories.ts, treatments.ts, bookingRequests.ts   # public endpoints
+    admin/                          # all /admin/* endpoints, one file per resource
+  realtime/
+    socket.ts                   # Socket.IO server + Clerk handshake auth (§12)
+    pgListener.ts                 # Postgres LISTEN/NOTIFY bridge with reconnect
+  openapi/
+    setup.ts                    # registry + envelope/error schemas
+    schemas.ts                    # response schemas mirroring lib/serializers.ts
+    paths.ts                       # path registrations, reuses schemas/index.ts for request bodies
+    document.ts                     # generates the final OpenAPI document
 ```
 
-Routes are added incrementally per `docs/task.md`:
+> **Wire format note:** request and response bodies are `snake_case` throughout (`full_name`, `treatment_id`), matching `docs/API_DOCUMENTATION.md`. Zod schemas in `schemas/index.ts` validate the snake_case shape directly; route handlers map explicitly to Prisma's camelCase columns. Don't "fix" either side to match the other's casing — that mismatch was a real bug once, see `docs/task.md`'s Phase 2-6 notes.
 
-- **Phase 2** — `src/middleware/auth.ts` (Clerk), `src/routes/webhooks.ts`
-- **Phase 3** — `src/routes/categories.ts`, `src/routes/treatments.ts`, `src/routes/bookingRequests.ts` (public)
-- **Phase 4–6** — `src/routes/admin/*`
-- **Phase 7** — `src/realtime/` (Socket.IO server + Postgres LISTEN bridge)
-- **Phase 8** — `src/routes/docs.ts` (Swagger UI)
+Routes are added incrementally per `docs/task.md`. Phases 2-8 are code-complete (auth, public/admin endpoints, realtime, API docs) — see `docs/task.md` for what's still unverified (live Clerk/DB testing) versus what's genuinely done.
 
 ## Getting started
 
@@ -78,6 +96,9 @@ Then run the API:
 npm run dev                   # http://localhost:4000, hot reload
 curl http://localhost:4000/health
 ```
+
+- **API reference (Swagger UI):** http://localhost:4000/docs (raw spec at `/openapi.json`) — generated from the same Zod schemas the routes validate against, so it can't drift silently from what the code actually accepts.
+- **Realtime:** Socket.IO mounts on the same HTTP server automatically; connect with a Clerk session token in `auth: { token }` (see `docs/API_DOCUMENTATION.md` §12). Requires `CLERK_SECRET_KEY` and `DATABASE_URL` to be set — the server logs a warning at startup if either is missing, rather than failing silently on first connection.
 
 ## Scripts
 

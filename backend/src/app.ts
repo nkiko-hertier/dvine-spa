@@ -10,6 +10,7 @@ import { categoriesRouter } from './routes/categories.js';
 import { treatmentsRouter } from './routes/treatments.js';
 import { bookingRequestsRouter } from './routes/bookingRequests.js';
 import { adminRouter } from './routes/admin/index.js';
+import { docsRouter } from './routes/docs.js';
 import { publicLimiter } from './middleware/rateLimit.js';
 import { notFoundHandler, errorHandler } from './middleware/errorHandler.js';
 
@@ -43,6 +44,13 @@ export function createApp() {
   app.use(clerkMiddleware());
 
   app.use(healthRouter);
+
+  // Swagger UI at /docs, generated from the same Zod schemas the routes
+  // validate against (see docs/API_DOCUMENTATION.md's top-of-file note).
+  // Gate this behind auth or an internal-only network in production if the
+  // API itself is public-facing — left open here since it's dev tooling,
+  // not a data endpoint, but that's a deployment decision, not a code one.
+  app.use(docsRouter);
 
   // Public (unauthenticated), rate-limited per API_DOCUMENTATION.md §4.5.
   app.use('/categories', publicLimiter, categoriesRouter);
