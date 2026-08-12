@@ -1,5 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 import { env } from '../config/env.js';
+import { PrismaPg } from '@prisma/adapter-pg'
+
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
 
 /**
  * Singleton PrismaClient. Import `prisma` from here everywhere — never
@@ -7,6 +10,7 @@ import { env } from '../config/env.js';
  * under `tsx watch`'s module reloading in dev.
  */
 export const prisma = new PrismaClient({
+  adapter,
   log: env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
 });
 
