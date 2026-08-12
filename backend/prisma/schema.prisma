@@ -22,7 +22,6 @@ generator client {
 
 datasource db {
   provider   = "postgresql"
-  url        = env("DATABASE_URL")
   extensions = [citext, pg_trgm, uuid_ossp(map: "uuid-ossp")]
 }
 
@@ -258,7 +257,7 @@ view BookingRequestDetail {
   createdAt        DateTime? @map("created_at") @db.Timestamp(6)
   isResolved       Boolean?  @map("is_resolved")
 
-  @@id([id])
+  // @@id([id])
   @@map("booking_request_details")
 }
 
@@ -276,7 +275,7 @@ view CustomerSummary {
   pendingRequests       BigInt?   @map("pending_requests")
   lastActivity          DateTime? @map("last_activity") @db.Timestamp(6)
 
-  @@id([id])
+  // @@id([id])
   @@map("customer_summary")
 }
 
@@ -290,6 +289,6 @@ view DailyRequestsSummary {
   cancelled     BigInt?
   noShow        BigInt?  @map("no_show")
 
-  @@id([requestDate])
+  //@@id([requestDate])
   @@map("daily_requests_summary")
 }
