@@ -38,11 +38,13 @@ COPY package.json package-lock.json ./
 COPY prisma ./prisma/
 
 # RUN npm ci --omit=dev --ignore-scripts
-RUN apk add --no-cache python3 make g++
-RUN npm ci --legecy-peer-deps 
+# RUN apk add --no-cache python3 make g++
+# RUN npm ci --legecy-peer-deps 
 
-RUN apk add --no-cache postgresql python3 make g++
-RUN npm ci -omit=dev --ignore-scripts --legecy-peer-deps 
+# RUN apk add --no-cache postgresql python3 make g++
+# RUN npm ci -omit=dev --ignore-scripts --legecy-peer-deps 
+
+RUN npm i
 
 
 
