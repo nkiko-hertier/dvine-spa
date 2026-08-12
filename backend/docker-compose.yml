@@ -1,4 +1,5 @@
 services:
+  # ── PostgreSQL ───────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
@@ -15,6 +16,32 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  # ── API ─────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - '4444:4444'
+    environment:
+      NODE_ENV: production
+      PORT: 4444
+      # Postgres running in the same Compose network — use service name as host
+      DATABASE_URL: postgresql://dvine:dvine@postgres:5432/dvine_spa
+      # Override these in .env (see .env.example)
+      DASHBOARD_URL: ${DASHBOARD_URL:-http://localhost:3000}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY:-}
+      CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY:-}
+      CLERK_WEBHOOK_SECRET: ${CLERK_WEBHOOK_SECRET:-}
+      REDIS_URL: ${REDIS_URL:-}
+    depends_on:
+      postgres:
+        condition: service_healthy   # waits for pg_isready before starting
+    env_file:
+      - path: .env
+        required: false              # won't fail if .env doesn't exist
 
 volumes:
   dvine_pg_data:
