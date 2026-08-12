@@ -13,7 +13,7 @@ COPY package.json package-lock.json ./
 COPY prisma ./prisma/
 
 # Full install — dev deps needed for tsc + prisma generate (postinstall)
-RUN npm ci
+RUN npm i
 
 # Copy source and compile
 COPY src ./src/
@@ -44,7 +44,7 @@ COPY prisma ./prisma/
 # RUN apk add --no-cache postgresql python3 make g++
 # RUN npm ci -omit=dev --ignore-scripts --legecy-peer-deps 
 
-RUN npm i
+RUN npm
 
 
 
