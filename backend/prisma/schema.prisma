@@ -129,7 +129,7 @@ model Customer {
 
 model BookingRequest {
   id                  String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  requestReference    String         @unique @map("request_reference") @db.VarChar(20)
+  requestReference    String?         @unique @map("request_reference") @db.VarChar(20)
   customerId          String         @map("customer_id") @db.Uuid
   treatmentId         String         @map("treatment_id") @db.Uuid
   preferredDate       DateTime       @map("preferred_date") @db.Date
