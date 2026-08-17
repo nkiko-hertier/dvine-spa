@@ -1,4 +1,4 @@
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { ErrorCode } from '../lib/errors.js';
 
 function rateLimitedResponse(_req: unknown, res: import('express').Response) {
@@ -33,6 +33,6 @@ export const adminLimiter = rateLimit({
   limit: 300,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => req.staff?.id ?? req.ip ?? 'unknown',
+  keyGenerator: (req) => req.staff?.id ?? ipKeyGenerator(req) ?? 'unknown',
   handler: rateLimitedResponse,
 });

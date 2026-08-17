@@ -35,6 +35,15 @@ export function createApp() {
     pinoHttp({
       logger,
       autoLogging: env.NODE_ENV !== 'test',
+      serializers: {
+        req: () => undefined,
+        res: () => undefined,
+      },
+      customSuccessMessage: (req, res) => `${req.method} ${req.url} -> ${res.statusCode}`,
+      customErrorMessage: (req, res, err) => {
+        const reason = err instanceof Error ? err.message : String(err);
+        return `${req.method} ${req.url} -> ${res.statusCode} (${reason})`;
+      },
     }),
   );
 
