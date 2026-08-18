@@ -38,7 +38,7 @@ RUN npm install -g pnpm && \
 COPY package.json pnpm-lock.yaml ./
 
 # Install only production dependencies
-RUN pnpm install --frozen-lockfile --production && \
+RUN pnpm install --frozen-lockfile && \
     pnpm run db:generate
 
 # Copy built application from builder
