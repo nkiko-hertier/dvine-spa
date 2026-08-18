@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
+import type { NavLinkRenderProps } from "react-router-dom";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -7,7 +8,7 @@ export default function Header() {
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const closeMenu = () => setIsMenuOpen(false);
 
-  const navLinkClass = ({ isActive }) =>
+  const navLinkClass = ({ isActive }: NavLinkRenderProps) =>
     `nav-link ${isActive ? "active" : ""}`;
 
   return (
