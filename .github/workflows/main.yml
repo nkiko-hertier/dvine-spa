@@ -1,0 +1,67 @@
+name: Docker Build & Boot Test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  docker-build-and-boot:
+    runs-on: ubuntu-latest
+
+    env:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_dev_password
+      POSTGRES_DB: dvine_spa
+      POSTGRES_PORT: 5432
+      PORT: 4000
+      NODE_ENV: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Builds the actual production Dockerfile (multi-stage: builder -> runtime)
+      - name: Build backend image
+        run: docker compose build backend
+
+      # Boots postgres + backend together exactly like a real deploy,
+      # including the backup.sql seed via docker-entrypoint-initdb.d
+      - name: Start stack
+        run: docker compose up -d
+
+      - name: Wait for backend health check to pass
+        run: |
+          echo "Waiting for backend container to report healthy..."
+          for i in $(seq 1 30); do
+            status=$(docker inspect --format='{{.State.Health.Status}}' dvine-backend 2>/dev/null || echo "starting")
+            echo "  [$i/30] status: $status"
+            if [ "$status" = "healthy" ]; then
+              echo "✓ Backend is healthy"
+              exit 0
+            fi
+            if [ "$status" = "unhealthy" ]; then
+              echo "✗ Backend reported unhealthy"
+              exit 1
+            fi
+            sleep 5
+          done
+          echo "✗ Timed out waiting for backend to become healthy"
+          exit 1
+
+      - name: Hit the health endpoint directly
+        run: curl -f http://localhost:4000/health
+
+      - name: Show logs on failure
+        if: failure()
+        run: |
+          echo "===== postgres logs ====="
+          docker compose logs postgres
+          echo "===== backend logs ====="
+          docker compose logs backend
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
