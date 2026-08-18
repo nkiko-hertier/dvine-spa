@@ -1,47 +1,82 @@
+version: '3.9'
+
 services:
-  # ── PostgreSQL ───────────────────────────────────────────────
+  # ========================================================================
+  # PostgreSQL Database
+  # ========================================================================
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
+    container_name: dvine-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: dvine
-      POSTGRES_PASSWORD: dvine
-      POSTGRES_DB: dvine_spa
+      POSTGRES_DB: ${POSTGRES_DB:-dvine_spa}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_dev_password}
+      PGDATA: /var/lib/postgresql/data/pgdata
     ports:
-      - '5432:5432'
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - dvine_pg_data:/var/lib/postgresql/data
+      # Database data persistence
+      - postgres_data:/var/lib/postgresql/data
+      # Initialize database with backup.sql on first run
+      - ./backup.sql:/docker-entrypoint-initdb.d/01-backup.sql
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U dvine -d dvine_spa']
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - dvine-network
 
-  # ── API ─────────────────────────────────────────────────────
-  api:
+  # ========================================================================
+  # Node.js Backend Application
+  # ========================================================================
+  backend:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: dvine-backend
     restart: unless-stopped
-    ports:
-      - '4444:4444'
+    depends_on:
+      postgres:
+        condition: service_healthy
     environment:
-      NODE_ENV: production
-      PORT: 4444
-      # Postgres running in the same Compose network — use service name as host
-      DATABASE_URL: postgresql://dvine:dvine@postgres:5432/dvine_spa
-      # Override these in .env (see .env.example)
-      DASHBOARD_URL: ${DASHBOARD_URL:-http://localhost:3000}
+      # Node environment
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: ${PORT:-4000}
+      
+      # Database configuration
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres_dev_password}@postgres:5432/${POSTGRES_DB:-dvine_spa}
+      
+      # Clerk authentication (optional)
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY:-}
       CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY:-}
       CLERK_WEBHOOK_SECRET: ${CLERK_WEBHOOK_SECRET:-}
+      
+      # Frontend dashboard URL
+      DASHBOARD_URL: ${DASHBOARD_URL:-http://localhost:3000}
+      
+      # Redis (optional for caching)
       REDIS_URL: ${REDIS_URL:-}
-    depends_on:
-      postgres:
-        condition: service_healthy   # waits for pg_isready before starting
-    env_file:
-      - path: .env
-        required: false              # won't fail if .env doesn't exist
+    ports:
+      - "${PORT:-4000}:4000"
+    # volumes:
+      # For development: mount source code for hot reload (optional)
+      # - ./src:/app/src
+      # - ./prisma:/app/prisma
+    networks:
+      - dvine-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 volumes:
-  dvine_pg_data:
+  postgres_data:
+    driver: local
+
+networks:
+  dvine-network:
+    driver: bridge

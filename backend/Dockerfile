@@ -1,66 +1,61 @@
-# ─────────────────────────────────────────────────────────────
-# Stage 1 — Builder
-# Install all deps (dev included), compile TypeScript, generate
-# the Prisma client. Nothing from this stage hits production.
-# ─────────────────────────────────────────────────────────────
+# ============================================================================
+# Builder Stage - Build application and generate Prisma client
+# ============================================================================
 FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Copy manifests + Prisma schema first so layer-caching works
-# (only rebuilds when these files change, not when src/ changes)
-COPY package.json package-lock.json ./
-COPY prisma ./prisma/
+# Install pnpm globally
+RUN npm install -g pnpm
 
-# Full install — dev deps needed for tsc + prisma generate (postinstall)
-RUN npm -g i pnpm
-RUN pnpm i
+# Copy package files
+COPY package.json pnpm-lock.yaml ./
 
-# Copy source and compile
-COPY src ./src/
-COPY tsconfig.json ./
+# Install all dependencies (including dev dependencies for build)
+RUN pnpm install --frozen-lockfile
 
-RUN npm run build
+# Copy source code
+COPY . .
 
+# Generate Prisma client
+RUN pnpm run db:generate
 
-# ─────────────────────────────────────────────────────────────
-# Stage 2 — Production runner
-# ─────────────────────────────────────────────────────────────
-FROM node:22-alpine AS runner
+# Build TypeScript
+RUN pnpm run build
 
-# postgresql-client gives us psql (for migrations) and pg_isready
-RUN apk add --no-cache postgresql-client
+# ============================================================================
+# Runtime Stage - Lean production image
+# ============================================================================
+FROM node:22-alpine
 
 WORKDIR /app
 
-# Production deps only — skip postinstall because prisma CLI
-# isn't here; we'll copy the generated client from builder instead
-COPY package.json package-lock.json ./
-COPY prisma ./prisma/
+# Install pnpm globally and dumb-init for proper signal handling
+RUN npm install -g pnpm && \
+    apk add --no-cache dumb-init postgresql-client
 
-# RUN npm ci --omit=dev --ignore-scripts
-# RUN apk add --no-cache python3 make g++
-# RUN npm ci --legecy-peer-deps 
+# Copy package files
+COPY package.json pnpm-lock.yaml ./
 
-RUN npm -g i pnpm
-RUN pnpm i
+# Install only production dependencies
+RUN pnpm install --frozen-lockfile --production && \
+    pnpm run db:generate
 
+# Copy built application from builder
+COPY --from=builder /app/dist ./dist
 
+# Copy Prisma files for runtime use
+COPY prisma ./prisma
 
-# Copy the Prisma-generated client (native binaries + JS types)
-# from the builder — avoids needing the prisma CLI at runtime
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-
-# Copy compiled JS output
-COPY --from=builder /app/dist ./dist/
-
-# Copy raw SQL migration files (applied once by entrypoint.sh)
-COPY sql ./sql/
-
-# Copy and wire up the entrypoint
-COPY entrypoint.sh ./
+# Copy entrypoint script
+COPY entrypoint.sh .
 RUN chmod +x entrypoint.sh
 
-EXPOSE 4444
+# Expose port (default 4000)
+EXPOSE 4000
 
-ENTRYPOINT ["./entrypoint.sh"]
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["dumb-init", "--"]
+
+# Start application
+CMD ["./entrypoint.sh"]
