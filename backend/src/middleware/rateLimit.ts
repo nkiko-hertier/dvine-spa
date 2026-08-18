@@ -33,6 +33,6 @@ export const adminLimiter = rateLimit({
   limit: 300,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req, res) => req.staff?.id ?? ipKeyGenerator()(req, res) ?? 'unknown',
+  keyGenerator: (req) => req.staff?.id ?? req.ip ?? 'unknown',
   handler: rateLimitedResponse,
 });
