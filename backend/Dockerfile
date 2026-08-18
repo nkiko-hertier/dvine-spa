@@ -19,6 +19,7 @@ RUN pnpm install --config.dangerously-allow-all-builds=true
 COPY . .
 
 # Generate Prisma client
+ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
 RUN pnpm run db:generate
 
 # Build TypeScript
@@ -40,6 +41,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY prisma ./prisma
 
 # Install only production dependencies
+ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
 RUN pnpm install --frozen-lockfile --config.dangerously-allow-all-builds=true && \
     pnpm run db:generate
 
