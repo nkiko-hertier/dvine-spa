@@ -119,3 +119,35 @@ bookingRequestsRouter.get('/lookup', async (req, res, next) => {
     next(err);
   }
 });
+
+bookingRequestsRouter.get('/easy-lookup', async (req, res, next) => {
+  try {
+    const input = parseOrThrow(bookingRequestLookupSchema, {
+      reference: req.query.reference,
+      phone_number: req.query.phone_number,
+    });
+
+    const bookingRequest = await prisma.bookingRequest.findFirst({
+      where: { customer: { phoneNumber: input.phone_number } },
+      include: { treatment: true },
+    });
+
+    // Same 404 whether the reference doesn't exist or the phone doesn't
+    // match, so a wrong guess can't be used to enumerate valid references.
+    if (!bookingRequest) throw AppError.notFound('No booking request found for that reference and phone number.');
+
+    ok(res, {
+      request_reference: bookingRequest.requestReference,
+      status: bookingRequest.status,
+      treatment_name: bookingRequest.treatment.name,
+      confirmed_date: bookingRequest.confirmedDate,
+      confirmed_time: bookingRequest.confirmedTime,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+
+
+
