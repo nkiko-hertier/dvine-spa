@@ -45,7 +45,8 @@ adminCustomersRouter.get('/', async (req, res, next) => {
 /** GET /admin/customers/:id — summary + notes + recent bookings */
 adminCustomersRouter.get('/:id', async (req, res, next) => {
   try {
-    const summary = await prisma.customerSummary.findUnique({ where: { id: req.params.id } });
+    // Change findUnique -> findFirst
+    const summary = await prisma.customerSummary.findFirst({ where: { id: req.params.id } });
     if (!summary) throw AppError.notFound('Customer not found.');
 
     const [customer, recentBookings] = await Promise.all([
