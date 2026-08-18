@@ -14,6 +14,7 @@ COPY prisma.config.ts ./
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # Install all dependencies (including dev dependencies for build)
+ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
 RUN pnpm install --config.dangerously-allow-all-builds=true
 
 # Copy source code
