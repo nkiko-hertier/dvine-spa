@@ -13,7 +13,7 @@ COPY prisma ./prisma
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # Install all dependencies (including dev dependencies for build)
-RUN pnpm install
+RUN pnpm install --config.dangerously-allow-all-builds=true
 
 # Copy source code
 COPY . .
@@ -40,7 +40,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY prisma ./prisma
 
 # Install only production dependencies
-RUN pnpm install --frozen-lockfile && \
+RUN pnpm install --frozen-lockfile --config.dangerously-allow-all-builds=true && \
     pnpm run db:generate
 
 # Copy built application from builder
