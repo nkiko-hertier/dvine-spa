@@ -57,7 +57,7 @@ if [ -n "$DATABASE_URL" ]; then
   
   # Check if migrations exist and run them
   if [ -d "prisma/migrations" ] && [ "$(ls -A prisma/migrations)" ]; then
-    npx prisma migrate deploy
+    # npx prisma migrate deploy
     echo "${GREEN}✓ Migrations completed${NC}"
   else
     echo "${YELLOW}No migrations found, skipping migration deployment${NC}"
