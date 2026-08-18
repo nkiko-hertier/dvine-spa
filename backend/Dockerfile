@@ -10,7 +10,7 @@ RUN npm install -g pnpm
 
 # Copy package files
 COPY prisma ./prisma
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # Install all dependencies (including dev dependencies for build)
 RUN pnpm install
@@ -36,7 +36,7 @@ RUN npm install -g pnpm && \
     apk add --no-cache dumb-init postgresql-client
 
 # Copy package files
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY prisma ./prisma
 
 # Install only production dependencies
