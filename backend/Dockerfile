@@ -10,6 +10,7 @@ RUN npm install -g pnpm
 
 # Copy package files
 COPY prisma ./prisma
+COPY prisma.config.ts ./
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # Install all dependencies (including dev dependencies for build)
@@ -38,6 +39,7 @@ RUN npm install -g pnpm && \
 
 # Copy package files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY prisma.config.ts ./
 COPY prisma ./prisma
 
 # Install only production dependencies
