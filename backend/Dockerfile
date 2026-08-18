@@ -9,7 +9,6 @@ WORKDIR /app
 RUN npm install -g pnpm
 
 # Copy package files
-COPY prisma ./prisma
 COPY package.json pnpm-lock.yaml ./
 
 # Install all dependencies (including dev dependencies for build)
@@ -37,6 +36,7 @@ RUN npm install -g pnpm && \
 
 # Copy package files
 COPY package.json pnpm-lock.yaml ./
+COPY prisma ./prisma
 
 # Install only production dependencies
 RUN pnpm install --frozen-lockfile && \
@@ -46,7 +46,6 @@ RUN pnpm install --frozen-lockfile && \
 COPY --from=builder /app/dist ./dist
 
 # Copy Prisma files for runtime use
-COPY prisma ./prisma
 
 # Copy entrypoint script
 COPY entrypoint.sh .
