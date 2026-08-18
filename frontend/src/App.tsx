@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import About from "./pages/About";
@@ -11,6 +10,7 @@ import NotFound from "./pages/NotFound";
 import DashbordServices from "./pages/admin/Services";
 import DashboardBookings from "./pages/admin/Booking";
 import DashboardCategories from "./pages/admin/Categories";
+import ProtectedRoute from "./components/ProtectedRoute";
 import "./App.css"; 
 import "./index.css";
 
@@ -25,10 +25,38 @@ export default function App() {
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/booking" element={<Booking />} />
                 <Route path="/login" element={<Login />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/dashboard/services" element={<DashbordServices />} />
-                <Route path="/dashboard/bookings" element={<DashboardBookings />} />
-                <Route path="/dashboard/categories" element={<DashboardCategories />} />
+                <Route
+                    path="/dashboard"
+                    element={
+                        <ProtectedRoute>
+                            <Dashboard />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/dashboard/services"
+                    element={
+                        <ProtectedRoute>
+                            <DashbordServices />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/dashboard/bookings"
+                    element={
+                        <ProtectedRoute>
+                            <DashboardBookings />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/dashboard/categories"
+                    element={
+                        <ProtectedRoute>
+                            <DashboardCategories />
+                        </ProtectedRoute>
+                    }
+                />
                 <Route path="*" element={<NotFound />} />
             </Routes>
             
