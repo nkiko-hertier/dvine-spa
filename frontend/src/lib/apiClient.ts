@@ -1,5 +1,4 @@
 import axios from "axios";
-import "../types/clerk-window";
 
 // Base URL for the backend API. Set VITE_API_BASE_URL in your .env
 // (see .env.example). Falls back to the local dev server.
