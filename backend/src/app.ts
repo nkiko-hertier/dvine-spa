@@ -26,7 +26,7 @@ export function createApp() {
 
   app.use(
     cors({
-      origin: env.DASHBOARD_URL,
+      origin: true,
       credentials: true,
     }),
   );
