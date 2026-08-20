@@ -51,6 +51,7 @@ export const bookingRequestCreateSchema = z.object({
   full_name: z.string().min(1).max(100),
   phone_number: z.string().min(6).max(20),
   whatsapp_number: z.string().min(6).max(20).optional(),
+  email: z.string().email().max(255).optional(),
   source: customerSourceSchema.optional(),
   treatment_id: z.string().uuid(),
   preferred_date: z.string().refine((v) => !Number.isNaN(new Date(v).getTime()), 'Invalid date.'),
@@ -82,6 +83,7 @@ export const bookingRequestUpdateSchema = z
 export const customerUpdateSchema = z.object({
   full_name: z.string().min(1).max(100).optional(),
   whatsapp_number: z.string().min(6).max(20).optional(),
+  email: z.string().email().max(255).optional().nullable(),
   source: customerSourceSchema.optional(),
   notes: z.string().optional(),
 });

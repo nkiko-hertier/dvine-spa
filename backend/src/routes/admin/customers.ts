@@ -90,6 +90,7 @@ adminCustomersRouter.patch('/:id', async (req, res, next) => {
       data: {
         ...(input.full_name !== undefined ? { fullName: input.full_name } : {}),
         ...(input.whatsapp_number !== undefined ? { whatsappNumber: input.whatsapp_number } : {}),
+        ...(input.email !== undefined ? { email: input.email } : {}),
         ...(input.source !== undefined ? { source: input.source } : {}),
         ...(input.notes !== undefined ? { notes: input.notes } : {}),
       },

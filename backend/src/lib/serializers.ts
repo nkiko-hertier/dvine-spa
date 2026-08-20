@@ -64,6 +64,7 @@ export function serializeCustomer(c: Customer) {
     full_name: c.fullName,
     phone_number: c.phoneNumber,
     whatsapp_number: c.whatsappNumber,
+    email: c.email,
     source: c.source,
     customer_since: c.customerSince,
     notes: c.notes,

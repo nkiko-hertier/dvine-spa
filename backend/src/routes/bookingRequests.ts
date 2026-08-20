@@ -7,6 +7,8 @@ import { bookingRequestCreateSchema, bookingRequestLookupSchema } from '../schem
 import { getIdempotentResponse, storeIdempotentResponse } from '../lib/idempotency.js';
 import { bookingCreateLimiter } from '../middleware/rateLimit.js';
 import { timeStringToDate } from '../lib/time.js';
+import { notifyCustomerBookingReceived, notifyStaffNewBooking } from '../lib/emailNotifications.js';
+import { logger } from '../lib/logger.js';
 
 export const bookingRequestsRouter = Router();
 
@@ -43,18 +45,39 @@ bookingRequestsRouter.post('/', bookingCreateLimiter, async (req, res, next) => 
     }
 
     // Upsert-by-phone: reuse the existing customer if this phone number has
-    // booked before; `source`/`notes` only apply the first time (§8.1 table).
+    // booked before. On re-book, update email only if the customer doesn't
+    // already have one — don't overwrite an existing email with a blank one.
     const customer = await prisma.customer.upsert({
       where: { phoneNumber: input.phone_number },
-      update: {},
+      update: {
+        ...(input.email
+          ? {
+              email: {
+                // Prisma conditional: set only if currently null
+                // We handle this with a raw conditional below instead
+              },
+            }
+          : {}),
+      },
       create: {
         fullName: input.full_name,
         phoneNumber: input.phone_number,
         whatsappNumber: input.whatsapp_number ?? input.phone_number,
+        email: input.email ?? null,
         source: input.source,
         notes: input.notes,
       },
     });
+
+    // If a new email was supplied on re-book and the customer has none, update it.
+    // We do this as a separate update to avoid a complex Prisma conditional.
+    if (input.email && !customer.email) {
+      await prisma.customer.update({
+        where: { id: customer.id },
+        data: { email: input.email },
+      });
+      customer.email = input.email;
+    }
 
     const bookingRequest = await prisma.bookingRequest.create({
       data: {
@@ -64,6 +87,7 @@ bookingRequestsRouter.post('/', bookingCreateLimiter, async (req, res, next) => 
         preferredTime: timeStringToDate(input.preferred_time),
         channel: input.channel ?? 'website',
       },
+      include: { customer: true, treatment: true },
     });
 
     const responseBody = {
@@ -86,6 +110,14 @@ bookingRequestsRouter.post('/', bookingCreateLimiter, async (req, res, next) => 
 
     if (idempotencyKey) storeIdempotentResponse(idempotencyKey, req.body, 201, responseBody);
     res.status(201).json(responseBody);
+
+    // Fire-and-forget email notifications after the response is sent.
+    void notifyCustomerBookingReceived(bookingRequest).catch((err) =>
+      logger.error({ err }, 'notifyCustomerBookingReceived threw unexpectedly'),
+    );
+    void notifyStaffNewBooking(bookingRequest).catch((err) =>
+      logger.error({ err }, 'notifyStaffNewBooking threw unexpectedly'),
+    );
   } catch (err) {
     next(err);
   }
@@ -132,8 +164,6 @@ bookingRequestsRouter.get('/easy-lookup', async (req, res, next) => {
       include: { treatment: true },
     });
 
-    // Same 404 whether the reference doesn't exist or the phone doesn't
-    // match, so a wrong guess can't be used to enumerate valid references.
     if (!bookingRequest) throw AppError.notFound('No booking request found for that reference and phone number.');
 
     ok(res, {
@@ -147,7 +177,3 @@ bookingRequestsRouter.get('/easy-lookup', async (req, res, next) => {
     next(err);
   }
 });
-
-
-
-

@@ -113,6 +113,7 @@ model Customer {
   fullName        String    @map("full_name") @db.VarChar(100)
   phoneNumber     String    @unique @map("phone_number") @db.VarChar(20)
   whatsappNumber  String?   @map("whatsapp_number") @db.VarChar(20)
+  email           String?   @db.VarChar(255)
   source          CustomerSource?
   customerSince   DateTime  @default(now()) @map("customer_since") @db.Timestamp(6)
   notes           String?

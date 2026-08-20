@@ -10,6 +10,8 @@ import { bookingRequestUpdateSchema, customerSourceSchema, bookingStatusSchema }
 import { assertValidTransition } from '../../lib/bookingStatusMachine.js';
 import { timeStringToDate } from '../../lib/time.js';
 import { serializeAuditLog } from '../../lib/serializers.js';
+import { notifyCustomerStatusChange } from '../../lib/emailNotifications.js';
+import { logger } from '../../lib/logger.js';
 
 export const adminBookingRequestsRouter = Router();
 
@@ -125,6 +127,13 @@ adminBookingRequestsRouter.patch('/:id', async (req, res, next) => {
     });
 
     ok(res, serializeBookingRequest(bookingRequest));
+
+    // Fire-and-forget status-change email after the response is already sent.
+    if (input.status) {
+      void notifyCustomerStatusChange(bookingRequest, input.status).catch((err) =>
+        logger.error({ err }, 'notifyCustomerStatusChange threw unexpectedly'),
+      );
+    }
   } catch (err) {
     next(err);
   }
@@ -144,6 +153,7 @@ function serializeBookingRequest(b: BookingRequestWithRelations) {
       full_name: b.customer.fullName,
       phone_number: b.customer.phoneNumber,
       whatsapp_number: b.customer.whatsappNumber,
+      email: b.customer.email,
     },
     treatment: {
       id: b.treatment.id,
