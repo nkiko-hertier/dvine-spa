@@ -2,11 +2,10 @@ import React, { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import Sidebar from "../../components/Sidebar";
 import DashboardHeader from "../../components/DashboardHeader";
+import BookingActionModal from "../../components/BookingActionModal";
 import {
   Eye,
   X,
-  Check,
-  Ban,
   Search,
   ChevronLeft,
   ChevronRight,
@@ -17,43 +16,8 @@ import {
   useAdminBookingRequests,
   useAdminTreatments,
 } from "../../lib/helpers";
-import type { BookingRequest, BookingStatus, BookingRequestUpdateInput } from "../../types";
-
-const STATUS_LABEL: Record<BookingStatus, string> = {
-  new_request: "New Request",
-  contacted: "Contacted",
-  confirmed: "Confirmed",
-  completed: "Completed",
-  cancelled: "Cancelled",
-  no_show: "No Show",
-};
-
-const STATUS_CLASS: Record<BookingStatus, string> = {
-  new_request: "bg-stone-200 text-stone-700",
-  contacted: "bg-amber-100 text-amber-800",
-  confirmed: "bg-emerald-100 text-emerald-800",
-  completed: "bg-blue-100 text-blue-800",
-  cancelled: "bg-red-100 text-red-800",
-  no_show: "bg-stone-300 text-stone-800",
-};
-
-// Requests can only move forward: new_request -> contacted -> confirmed -> completed.
-const NEXT_STATUS: Partial<Record<BookingStatus, BookingStatus>> = {
-  new_request: "contacted",
-  contacted: "confirmed",
-  confirmed: "completed",
-};
-
-const CANCEL_REASON = "Cancelled by management.";
-
-function formatDateTime(date: string, time: string): string {
-  if (!date) return "—";
-  const d = new Date(date);
-  const dateStr = Number.isNaN(d.getTime())
-    ? date
-    : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-  return time ? `${dateStr}, ${time}` : dateStr;
-}
+import { STATUS_LABEL, STATUS_CLASS, formatDateTime } from "../../lib/bookingStatus";
+import type { BookingRequest } from "../../types";
 
 export default function DashboardBookings(): React.ReactElement {
   const queryClient = useQueryClient();
@@ -75,9 +39,6 @@ export default function DashboardBookings(): React.ReactElement {
 
   // View Modal State
   const [selectedBooking, setSelectedBooking] = useState<BookingRequest | null>(null);
-  const [isViewModalOpen, setIsViewModalOpen] = useState<boolean>(false);
-  const [statusError, setStatusError] = useState<string>("");
-  const [isUpdating, setIsUpdating] = useState<boolean>(false);
 
   // New Booking Modal State (uses the public create endpoint)
   const [isNewModalOpen, setIsNewModalOpen] = useState<boolean>(false);
@@ -94,44 +55,10 @@ export default function DashboardBookings(): React.ReactElement {
 
   const handleOpenViewModal = (booking: BookingRequest) => {
     setSelectedBooking(booking);
-    setStatusError("");
-    setIsViewModalOpen(true);
   };
 
   const handleCloseViewModal = () => {
-    setIsViewModalOpen(false);
     setSelectedBooking(null);
-    setStatusError("");
-  };
-
-  const handleUpdateStatus = async (booking: BookingRequest, newStatus: BookingStatus) => {
-    setStatusError("");
-    setIsUpdating(true);
-    try {
-      const body: BookingRequestUpdateInput =
-        newStatus === "cancelled"
-          ? { status: newStatus, cancellation_reason: CANCEL_REASON }
-          : { status: newStatus };
-
-      await apiClient.patch(
-        ENDPOINTS.admin.bookingRequests.updateBookingRequestById(booking.id),
-        body
-      );
-      // Keep modal in sync
-      setSelectedBooking((prev) =>
-        prev && prev.id === booking.id ? { ...prev, status: newStatus } : prev
-      );
-      // Refresh lists + dashboard stats
-      queryClient.invalidateQueries({ queryKey: ["admin", "bookingRequests", "list"] });
-      queryClient.invalidateQueries({ queryKey: ["admin", "bookingRequests", "detail", booking.id] });
-      queryClient.invalidateQueries({ queryKey: ["admin", "dashboard"] });
-      queryClient.invalidateQueries({ queryKey: ["admin", "customers", "list"] });
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { error?: { message?: string } } } };
-      setStatusError(axiosErr.response?.data?.error?.message || "Failed to update booking status.");
-    } finally {
-      setIsUpdating(false);
-    }
   };
 
   const handleCreateBookingSubmit = async (e: React.FormEvent) => {
@@ -309,124 +236,7 @@ export default function DashboardBookings(): React.ReactElement {
       </div>
 
       {/* VIEW BOOKING DETAILS & ACTION MODAL */}
-      {isViewModalOpen && selectedBooking && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-[#EFECE6] border border-stone-300 w-full max-w-lg shadow-xl overflow-hidden font-['Work_Sans',sans-serif]">
-            <div className="bg-[#1C3A27] text-[#F8F6F0] px-6 py-4 flex items-center justify-between">
-              <div>
-                <span className="text-[10px] uppercase tracking-[0.25em] text-emerald-300 block">
-                  Booking Submission Details
-                </span>
-                <h3 className="font-serif text-xl">{selectedBooking.request_reference || selectedBooking.id.slice(0, 8).toUpperCase()}</h3>
-              </div>
-              <button onClick={handleCloseViewModal} className="text-stone-300 hover:text-white transition-colors p-1">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-4 bg-[#F8F6F0] p-4 border border-stone-300/60">
-                <div>
-                  <span className="block text-[10px] uppercase tracking-wider text-stone-500 font-semibold">Client Name</span>
-                  <span className="font-semibold text-[#1C3A27] text-sm">{selectedBooking.customer.full_name}</span>
-                </div>
-                <div>
-                  <span className="block text-[10px] uppercase tracking-wider text-stone-500 font-semibold">Status</span>
-                  <span className={`inline-block mt-1 px-2 py-0.5 text-[9px] uppercase tracking-widest font-semibold ${STATUS_CLASS[selectedBooking.status]}`}>
-                    {STATUS_LABEL[selectedBooking.status]}
-                  </span>
-                </div>
-              </div>
-
-              <div className="space-y-3 bg-[#F8F6F0] p-4 border border-stone-300/60">
-                <div className="flex justify-between border-b border-stone-300/50 pb-2">
-                  <span className="text-stone-500 uppercase tracking-wider text-[10px]">Phone Number:</span>
-                  <span className="font-medium text-[#1C3A27]">{selectedBooking.customer.phone_number}</span>
-                </div>
-                {selectedBooking.customer.whatsapp_number && (
-                  <div className="flex justify-between border-b border-stone-300/50 pb-2">
-                    <span className="text-stone-500 uppercase tracking-wider text-[10px]">WhatsApp:</span>
-                    <span className="font-medium text-[#1C3A27]">{selectedBooking.customer.whatsapp_number}</span>
-                  </div>
-                )}
-                <div className="flex justify-between border-b border-stone-300/50 pb-2">
-                  <span className="text-stone-500 uppercase tracking-wider text-[10px]">Requested Service:</span>
-                  <span className="font-medium text-[#1C3A27]">{selectedBooking.treatment.name}</span>
-                </div>
-                <div className="flex justify-between border-b border-stone-300/50 pb-2">
-                  <span className="text-stone-500 uppercase tracking-wider text-[10px]">Scheduled Time:</span>
-                  <span className="font-medium text-[#1C3A27]">
-                    {formatDateTime(selectedBooking.preferred_date, selectedBooking.preferred_time)}
-                  </span>
-                </div>
-                {selectedBooking.confirmed_date && (
-                  <div className="flex justify-between pb-1">
-                    <span className="text-stone-500 uppercase tracking-wider text-[10px]">Confirmed For:</span>
-                    <span className="font-medium text-[#1C3A27]">
-                      {formatDateTime(selectedBooking.confirmed_date, selectedBooking.confirmed_time ?? "")}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {selectedBooking.staff_notes && (
-                <div className="bg-[#F8F6F0] p-4 border border-stone-300/60">
-                  <span className="block text-[10px] uppercase tracking-wider text-stone-500 font-semibold mb-1">Staff Notes</span>
-                  <p className="text-stone-700 italic font-light">{selectedBooking.staff_notes}</p>
-                </div>
-              )}
-
-              {statusError && (
-                <p className="text-red-700 text-xs bg-red-50 p-3 border border-red-200">{statusError}</p>
-              )}
-            </div>
-
-            <div className="bg-stone-200/60 px-6 py-4 border-t border-stone-300 flex items-center justify-between">
-              {selectedBooking.status === "confirmed" ||
-              selectedBooking.status === "completed" ||
-              selectedBooking.status === "cancelled" ||
-              selectedBooking.status === "no_show" ? (
-                <div className="w-full flex justify-end">
-                  <button
-                    onClick={handleCloseViewModal}
-                    className="bg-[#1C3A27] text-[#F8F6F0] px-6 py-2.5 text-[10px] uppercase tracking-[0.2em] font-semibold hover:bg-[#0A2619] transition-colors"
-                  >
-                    Close
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => handleUpdateStatus(selectedBooking, NEXT_STATUS[selectedBooking.status] ?? "confirmed")}
-                      disabled={isUpdating}
-                      className="inline-flex items-center space-x-1 bg-emerald-700 text-white px-4 py-2 text-[10px] uppercase tracking-wider font-semibold hover:bg-emerald-800 transition-colors disabled:opacity-50"
-                    >
-                      <Check className="w-3.5 h-3.5" />
-                      <span>{isUpdating ? "Saving..." : "Advance"}</span>
-                    </button>
-                    <button
-                      onClick={() => handleUpdateStatus(selectedBooking, "cancelled")}
-                      disabled={isUpdating}
-                      className="inline-flex items-center space-x-1 bg-red-700 text-white px-4 py-2 text-[10px] uppercase tracking-wider font-semibold hover:bg-red-800 transition-colors disabled:opacity-50"
-                    >
-                      <Ban className="w-3.5 h-3.5" />
-                      <span>Reject</span>
-                    </button>
-                  </div>
-
-                  <button
-                    onClick={handleCloseViewModal}
-                    className="bg-stone-300 text-stone-800 px-5 py-2 text-[10px] uppercase tracking-[0.2em] font-semibold hover:bg-stone-400 transition-colors"
-                  >
-                    Close
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {selectedBooking && <BookingActionModal booking={selectedBooking} onClose={handleCloseViewModal} />}
 
       {/* NEW MANUAL BOOKING MODAL */}
       {isNewModalOpen && (

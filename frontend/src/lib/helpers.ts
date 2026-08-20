@@ -21,10 +21,12 @@
  * See docs/API_USAGE.md for the full write-up (query params, auth, etc).
  */
 
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { UseQueryOptions } from "@tanstack/react-query";
 import { apiClient } from "./apiClient";
 import { ENDPOINTS } from "./endpoints";
+import { connectDashboardSocket, getDashboardSocket } from "./socket";
 import type {
   ApiSuccess,
   ApiListSuccess,
@@ -46,6 +48,7 @@ import type {
   BookingRequest,
   BookingRequestDetail,
   BookingRequestListParams,
+  BookingStatus,
   BookingRequestCreateInput,
   BookingRequestCreateResult,
   BookingRequestUpdateInput,
@@ -534,8 +537,97 @@ export function useUpdateBookingRequest(id: string) {
       queryClient.invalidateQueries({ queryKey: ["admin", "dashboard"] });
       // A status change can also affect the customer's pending/visit counts.
       queryClient.invalidateQueries({ queryKey: ["admin", "customers", "list"] });
+      // Keep the notification panel's tracked-status list (defined below) in sync too.
+      queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_QUERY_KEY });
     },
   });
+}
+
+// =============================================================================
+// ADMIN — realtime notification panel
+// =============================================================================
+
+/**
+ * Statuses the notification bell tracks by default — the booking requests
+ * that still need staff attention (submitted, being contacted, or
+ * confirmed but not yet completed). Terminal states (completed, cancelled,
+ * no_show) are deliberately excluded.
+ */
+export const NOTIFICATION_TRACKED_STATUSES: BookingStatus[] = [
+  "new_request",
+  "contacted",
+  "confirmed",
+];
+
+const NOTIFICATIONS_QUERY_KEY = ["admin", "bookingRequests", "list", "notifications"] as const;
+
+/**
+ * GET /admin/booking-requests filtered to NOTIFICATION_TRACKED_STATUSES,
+ * newest first. This is the data source for the notification panel — kept
+ * fresh by useRealtimeNotifications() invalidating this exact query key
+ * whenever the backend's Socket.IO bridge reports a relevant change,
+ * rather than trying to hand-merge partial socket payloads (which don't
+ * carry customer/treatment names) into local state.
+ */
+export function useAdminPendingNotifications(
+  options?: ExtraQueryOptions<ApiListSuccess<BookingRequest>>
+) {
+  return useQuery({
+    queryKey: NOTIFICATIONS_QUERY_KEY,
+    queryFn: async () => {
+      const { data } = await apiClient.get<ApiListSuccess<BookingRequest>>(
+        ENDPOINTS.admin.bookingRequests.getAllBookingRequests(),
+        { params: { status: NOTIFICATION_TRACKED_STATUSES, sort: "-created_at", limit: 20 } }
+      );
+      return data;
+    },
+    ...options,
+  });
+}
+
+/**
+ * Connects to the dashboard's Socket.IO feed (backend/src/realtime/socket.ts)
+ * and keeps booking-related queries live:
+ *  - `booking:updated` fires on every INSERT/UPDATE to booking_requests
+ *    (new submissions and status/reschedule changes alike).
+ *  - `notification:new` fires for the lighter "toast" events (new
+ *    requests, cancellations, no-shows).
+ * Both just trigger a targeted refetch — the payloads are partial (no
+ * customer/treatment names), so re-fetching via REST is what keeps the
+ * notification panel and booking lists showing complete, accurate data.
+ * Returns the live connection status so callers can show a subtle
+ * "reconnecting" indicator if they want one.
+ */
+export function useRealtimeNotifications(): { connected: boolean } {
+  const queryClient = useQueryClient();
+  const [connected, setConnected] = useState<boolean>(() => getDashboardSocket().connected);
+
+  useEffect(() => {
+    const socket = connectDashboardSocket();
+
+    const invalidateBookingQueries = () => {
+      queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["admin", "bookingRequests", "list"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "dashboard"] });
+    };
+
+    const handleConnect = () => setConnected(true);
+    const handleDisconnect = () => setConnected(false);
+
+    socket.on("connect", handleConnect);
+    socket.on("disconnect", handleDisconnect);
+    socket.on("booking:updated", invalidateBookingQueries);
+    socket.on("notification:new", invalidateBookingQueries);
+
+    return () => {
+      socket.off("connect", handleConnect);
+      socket.off("disconnect", handleDisconnect);
+      socket.off("booking:updated", invalidateBookingQueries);
+      socket.off("notification:new", invalidateBookingQueries);
+    };
+  }, [queryClient]);
+
+  return { connected };
 }
 
 // =============================================================================

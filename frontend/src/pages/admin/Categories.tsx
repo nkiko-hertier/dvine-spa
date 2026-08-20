@@ -43,6 +43,8 @@ export default function DashboardCategories(): React.ReactElement {
   const [currentId, setCurrentId] = useState<string>("");
   const [name, setName] = useState<string>("");
   const [description, setDescription] = useState<string>("");
+  const [coverImageUrl, setCoverImageUrl] = useState<string>("");
+  const [isActive, setIsActive] = useState<boolean>(true);
   const [formError, setFormError] = useState<string>("");
 
   const handleOpenAddModal = () => {
@@ -50,6 +52,8 @@ export default function DashboardCategories(): React.ReactElement {
     setCurrentId("");
     setName("");
     setDescription("");
+    setCoverImageUrl("");
+    setIsActive(true);
     setFormError("");
     setIsFormModalOpen(true);
   };
@@ -59,6 +63,8 @@ export default function DashboardCategories(): React.ReactElement {
     setCurrentId(category.id);
     setName(category.name);
     setDescription(category.description ?? "");
+    setCoverImageUrl(category.cover_image_url ?? "");
+    setIsActive(category.is_active);
     setFormError("");
     setIsFormModalOpen(true);
   };
@@ -74,6 +80,10 @@ export default function DashboardCategories(): React.ReactElement {
     const body = {
       name: name.trim(),
       description: description.trim() || undefined,
+      cover_image_url: coverImageUrl.trim() || undefined,
+      // New categories are always created active by the backend — is_active
+      // is only ever sent (and honored) on edit.
+      ...(isEditing ? { is_active: isActive } : {}),
     };
 
     try {
@@ -286,6 +296,35 @@ export default function DashboardCategories(): React.ReactElement {
                     onChange={(e) => setDescription(e.target.value)}
                     className="w-full p-2.5 bg-[#F8F6F0] border border-stone-300 text-xs text-[#1C3A27] placeholder-stone-400 focus:outline-none focus:border-[#1C3A27]"
                   />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[10px] uppercase tracking-wider text-stone-600 font-semibold">Cover Image URL</label>
+                  <input
+                    type="url"
+                    placeholder="https://example.com/images/category-cover.jpg"
+                    value={coverImageUrl}
+                    onChange={(e) => setCoverImageUrl(e.target.value)}
+                    className="w-full p-2.5 bg-[#F8F6F0] border border-stone-300 text-xs text-[#1C3A27] placeholder-stone-400 focus:outline-none focus:border-[#1C3A27]"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[10px] uppercase tracking-wider text-stone-600 font-semibold">Status</label>
+                  <select
+                    value={isActive ? "active" : "inactive"}
+                    onChange={(e) => setIsActive(e.target.value === "active")}
+                    disabled={!isEditing}
+                    className="w-full p-2.5 bg-[#F8F6F0] border border-stone-300 text-xs text-[#1C3A27] focus:outline-none focus:border-[#1C3A27] disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                  {!isEditing && (
+                    <p className="text-[10px] text-stone-500 font-light pt-0.5">
+                      New categories are always created active — you can deactivate one after creating it.
+                    </p>
+                  )}
                 </div>
 
                 {formError && (

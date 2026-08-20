@@ -16,6 +16,15 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path: string) => path.replace(/^\/api/, ""),
       },
+      // Socket.IO's own handshake path — proxied straight through (no
+      // rewrite; the backend mounts Socket.IO at the default /socket.io
+      // path) with ws: true so the upgrade to a websocket connection works
+      // through the dev server too, not just the initial HTTP handshake.
+      "/socket.io": {
+        target: "http://5.189.175.8:4000",
+        changeOrigin: true,
+        ws: true,
+      },
     },
   },
 });
