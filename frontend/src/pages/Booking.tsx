@@ -42,7 +42,6 @@ export default function Booking(): React.ReactElement {
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
-    email: "",
     date: "",
     time: "",
     notes: "",
@@ -93,7 +92,6 @@ export default function Booking(): React.ReactElement {
         {
           full_name: formData.name,
           phone_number: formData.phone,
-          email: formData.email || undefined,
           treatment_id: selectedService.id,
           preferred_date: formData.date,
           preferred_time: formData.time, // already "HH:MM"
@@ -125,7 +123,6 @@ export default function Booking(): React.ReactElement {
     setFormData({
       name: "",
       phone: "",
-      email: "",
       date: "",
       time: "",
       notes: "",
@@ -141,7 +138,7 @@ export default function Booking(): React.ReactElement {
           <div
             className="absolute inset-0 bg-cover bg-center"
             style={{
-              backgroundImage: `url('https://images.unsplash.com/photo-1544161515-4ab6ce6db874?q=80&w=1600&auto=format&fit=crop')`,
+              backgroundImage: `url('/ISIMBI%20PICTURES%20(73).jpg')`,
             }}
           />
           <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/70 to-black/50" />
@@ -181,13 +178,7 @@ export default function Booking(): React.ReactElement {
                   <p><strong>Service:</strong> {selectedService?.name} ({selectedService?.duration_minutes} mins)</p>
                   <p><strong>Date & Time:</strong> {formData.date} at {formData.time}</p>
                   <p><strong>Contact:</strong> {formData.phone}</p>
-                  {formData.email && (
-                    <p><strong>Email:</strong> {formData.email}</p>
-                  )}
-                  <p className="text-stone-500 pt-2 text-[11px]">
-                    We will contact you shortly via phone or WhatsApp to confirm your slot.
-                    {formData.email && " A confirmation has been sent to your email."}
-                  </p>
+                  <p className="text-stone-500 pt-2 text-[11px]">We will contact you shortly via phone or WhatsApp to confirm your slot.</p>
                 </div>
 
                 <div className="pt-4">
@@ -309,20 +300,6 @@ export default function Booking(): React.ReactElement {
                       className="w-full bg-[#F8F6F0] border border-stone-300 p-3 outline-none focus:border-[#1C3A27]"
                     />
                   </div>
-                </div>
-
-                {/* Email — optional but strongly encouraged for confirmation emails */}
-                <div>
-                  <label className="block text-[10px] uppercase tracking-wider font-semibold text-stone-600 mb-1">
-                    Email Address <span className="text-stone-400 font-normal normal-case tracking-normal">(optional — for booking confirmation)</span>
-                  </label>
-                  <input
-                    type="email"
-                    placeholder="you@example.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full bg-[#F8F6F0] border border-stone-300 p-3 outline-none focus:border-[#1C3A27]"
-                  />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

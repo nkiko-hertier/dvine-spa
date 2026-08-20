@@ -5,10 +5,26 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { apiClient } from "../lib/apiClient";
 import { ENDPOINTS } from "../lib/endpoints";
-import { usePublicTreatments } from "../lib/helpers";
+import { usePublicCategories, usePublicTreatments } from "../lib/helpers";
+import type { PublicCategory, PublicTreatment } from "../types";
 
 export default function Services(): React.ReactElement {
-  const { data: treatmentsData, isLoading: treatmentsLoading } = usePublicTreatments({ limit: 100 });
+  const { data: categoriesData } = usePublicCategories();
+
+  const {
+    data: treatmentsData,
+    isLoading: treatmentsLoading,
+    isError: treatmentsError,
+  } = usePublicTreatments({ limit: 100 });
+
+  const categories = categoriesData ?? [];
+  const allTreatments = treatmentsData?.data ?? [];
+
+  // Category filter — "all" shows every service by default.
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("all");
+  // Search by service name.
+  const [searchTerm, setSearchTerm] = useState<string>("");
+
   const [selectedService, setSelectedService] = useState<{ id: string; name: string; price: string; duration_minutes: number } | null>(null);
   const [sameAsPhone, setSameAsPhone] = useState<boolean>(false);
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
@@ -111,7 +127,15 @@ export default function Services(): React.ReactElement {
     }
   };
 
-  const treatments = treatmentsData?.data ?? [];
+  // Filter services by selected category and search term.
+  const filteredTreatments = allTreatments.filter((item: PublicTreatment) => {
+    const matchesCategory =
+      selectedCategoryId === "all" || item.category?.id === selectedCategoryId;
+    const matchesSearch =
+      searchTerm.trim() === "" ||
+      item.name.toLowerCase().includes(searchTerm.trim().toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
 
   return (
     <>
@@ -123,7 +147,7 @@ export default function Services(): React.ReactElement {
           <div
             className="absolute inset-0 bg-cover bg-center"
             style={{
-              backgroundImage: `url('https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=1600&auto=format&fit=crop')`,
+              backgroundImage: `url('/ISIMBI%20PICTURES%20(73).jpg')`,
             }}
           />
           <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/70 to-black/50" />
@@ -141,7 +165,7 @@ export default function Services(): React.ReactElement {
           </div>
         </section>
 
-        {/* SECTION 2: TREATMENTS GRID */}
+        {/* SECTION 2: FILTERS + TREATMENTS GRID */}
         <section className="max-w-7xl mx-auto px-6 py-16 space-y-10">
           <div data-aos="fade-up" className="border-b border-stone-300/60 pb-4">
             <span className="text-[9px] uppercase tracking-[0.3em] text-stone-500 font-semibold block mb-1">
@@ -152,13 +176,51 @@ export default function Services(): React.ReactElement {
             </h2>
           </div>
 
+          {/* SEARCH + CATEGORY DROPDOWN FILTERS */}
+          <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
+            {/* Search input */}
+            <div className="relative flex-1 max-w-md">
+              <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </span>
+              <input
+                type="text"
+                placeholder="Search services by name..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-[#EFECE6] border border-stone-300 text-xs text-[#1C3A27] placeholder-stone-400 focus:outline-none focus:border-[#1C3A27]"
+              />
+            </div>
+
+            {/* Category dropdown filter */}
+            <div className="relative">
+              <select
+                value={selectedCategoryId}
+                onChange={(e) => setSelectedCategoryId(e.target.value)}
+                className="w-full sm:w-auto bg-[#EFECE6] border border-stone-300 px-4 py-2.5 text-xs text-[#1C3A27] focus:outline-none focus:border-[#1C3A27] cursor-pointer"
+              >
+                <option value="all">All Categories</option>
+                {categories.map((cat: PublicCategory) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* TREATMENTS GRID — all services by default, filtered by category/search */}
           {treatmentsLoading ? (
-            <p className="text-center text-stone-500 italic py-20 text-sm">Loading treatments...</p>
-          ) : treatments.length === 0 ? (
-            <p className="text-center text-stone-500 italic py-20 text-sm">No treatments available right now.</p>
+            <p className="text-center text-stone-500 italic py-20 text-sm">Loading services...</p>
+          ) : treatmentsError ? (
+            <p className="text-center text-red-700 italic py-20 text-sm">Unable to load services. Please try again.</p>
+          ) : filteredTreatments.length === 0 ? (
+            <p className="text-center text-stone-500 italic py-20 text-sm">No treatments match your search or category filter.</p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {treatments.map((item) => (
+              {filteredTreatments.map((item: PublicTreatment) => (
                 <div
                   key={item.id}
                   data-aos="fade-up"
@@ -167,7 +229,7 @@ export default function Services(): React.ReactElement {
                   <div className="space-y-4">
                     <div className="img-zoom-container border border-stone-300/60 h-48">
                       <img
-                        src={item.image_url || "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?q=80&w=800&auto=format&fit=crop"}
+                        src={item.image_url || "/ISIMBI%20PICTURES%20(74).jpg"}
                         alt={item.name}
                         className="w-full h-full object-cover"
                       />
@@ -185,6 +247,12 @@ export default function Services(): React.ReactElement {
                           </span>
                         </div>
                       </div>
+
+                      {item.category?.name && (
+                        <span className="inline-block px-2 py-0.5 text-[9px] uppercase tracking-widest font-semibold bg-stone-200 text-stone-700 mb-2">
+                          {item.category.name}
+                        </span>
+                      )}
 
                       {item.description && (
                         <p className="text-xs text-stone-600 font-light leading-relaxed mt-2">
