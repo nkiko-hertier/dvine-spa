@@ -54,8 +54,8 @@ export default function DashboardHeader({
       {/* NOTIFICATIONS + ADMIN PROFILE */}
       <div className="flex items-center space-x-2">
       <NotificationPanel />
-      <div className="relative" ref={dropdownRef}>
         <UserButton />
+      {/* <div className="relative" ref={dropdownRef}>
         <button
           hidden
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -74,7 +74,9 @@ export default function DashboardHeader({
           <ChevronDown className={`w-3.5 h-3.5 text-stone-500 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`} />
         </button>
 
-        {/* DROPDOWN MENU */}
+        */}
+
+        {/* DROPDOWN MENU
         {isDropdownOpen && (
           <div className="absolute right-0 mt-2 w-56 bg-[#EFECE6] border border-stone-300 shadow-lg py-2 z-50 text-xs">
             <div className="px-4 py-2 border-b border-stone-300/65 mb-1">
@@ -111,7 +113,7 @@ export default function DashboardHeader({
             </button>
           </div>
         )}
-      </div>
+      </div> */}
       </div>
 
     </header>
