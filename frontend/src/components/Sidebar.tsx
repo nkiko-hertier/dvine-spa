@@ -56,7 +56,7 @@ export default function Sidebar(): React.ReactElement {
       {/* BOTTOM ACTION BUTTON */}
       <div className="pt-6 border-t border-emerald-900/60">
         <Link
-          to="/dashboard/booking/new"
+          to="/dashboard/bookings"
           className="flex items-center justify-center space-x-2 w-full bg-[#F8F6F0] text-[#1C3A27] py-3 text-[10px] uppercase tracking-[0.2em] font-semibold hover:bg-white transition-colors shadow-sm"
         >
           <Plus className="w-4 h-4" />

@@ -138,7 +138,7 @@ export default function Booking(): React.ReactElement {
           <div
             className="absolute inset-0 bg-cover bg-center"
             style={{
-              backgroundImage: `url('https://images.unsplash.com/photo-1544161515-4ab6ce6db874?q=80&w=1600&auto=format&fit=crop')`,
+              backgroundImage: `url('/ISIMBI%20PICTURES%20(73).jpg')`,
             }}
           />
           <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/70 to-black/50" />

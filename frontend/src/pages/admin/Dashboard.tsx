@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import Sidebar from "../../components/Sidebar";
 import DashboardHeader from "../../components/DashboardHeader";
 import BookingActionModal from "../../components/BookingActionModal";
@@ -117,12 +118,12 @@ export default function Dashboard(): React.ReactElement {
                 <h2 className="font-serif text-2xl text-[#1C3A27]">Recent Bookings</h2>
                 <p className="text-xs text-stone-600 font-light mt-0.5">Showing the last 5 recorded sanctuary bookings</p>
               </div>
-              <a
-                href="/dashboard/bookings"
+              <Link
+                to="/dashboard/bookings"
                 className="text-[10px] uppercase tracking-[0.2em] font-semibold text-stone-600 hover:text-[#1C3A27] transition-colors"
               >
                 View All Bookings
-              </a>
+              </Link>
             </div>
 
             <div className="overflow-x-auto">

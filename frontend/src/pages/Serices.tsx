@@ -5,10 +5,30 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { apiClient } from "../lib/apiClient";
 import { ENDPOINTS } from "../lib/endpoints";
-import { usePublicTreatments } from "../lib/helpers";
+import { usePublicCategories, usePublicCategoryTreatments } from "../lib/helpers";
+import type { PublicCategory, PublicTreatment } from "../types";
 
 export default function Services(): React.ReactElement {
-  const { data: treatmentsData, isLoading: treatmentsLoading } = usePublicTreatments({ limit: 100 });
+  const {
+    data: categoriesData,
+    isLoading: categoriesLoading,
+    isError: categoriesError,
+  } = usePublicCategories();
+
+  const categories = categoriesData ?? [];
+
+  // First API category is active by default — never hardcoded.
+  // `activeCategoryId` starts null; the effective active category falls
+  // back to the first API category until the user clicks a tab.
+  const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
+  const effectiveActiveCategoryId = activeCategoryId ?? categories[0]?.id ?? null;
+
+  const {
+    data: treatmentsData,
+    isLoading: treatmentsLoading,
+    isError: treatmentsError,
+  } = usePublicCategoryTreatments(effectiveActiveCategoryId ?? "", { enabled: !!effectiveActiveCategoryId });
+
   const [selectedService, setSelectedService] = useState<{ id: string; name: string; price: string; duration_minutes: number } | null>(null);
   const [sameAsPhone, setSameAsPhone] = useState<boolean>(false);
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
@@ -111,7 +131,7 @@ export default function Services(): React.ReactElement {
     }
   };
 
-  const treatments = treatmentsData?.data ?? [];
+  const treatments = treatmentsData ?? [];
 
   return (
     <>
@@ -123,7 +143,7 @@ export default function Services(): React.ReactElement {
           <div
             className="absolute inset-0 bg-cover bg-center"
             style={{
-              backgroundImage: `url('https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=1600&auto=format&fit=crop')`,
+              backgroundImage: `url('/ISIMBI%20PICTURES%20(73).jpg')`,
             }}
           />
           <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/70 to-black/50" />
@@ -141,7 +161,7 @@ export default function Services(): React.ReactElement {
           </div>
         </section>
 
-        {/* SECTION 2: TREATMENTS GRID */}
+        {/* SECTION 2: CATEGORY TABS + TREATMENTS GRID */}
         <section className="max-w-7xl mx-auto px-6 py-16 space-y-10">
           <div data-aos="fade-up" className="border-b border-stone-300/60 pb-4">
             <span className="text-[9px] uppercase tracking-[0.3em] text-stone-500 font-semibold block mb-1">
@@ -152,13 +172,41 @@ export default function Services(): React.ReactElement {
             </h2>
           </div>
 
+          {/* CATEGORY TABS — dynamically generated from the API */}
+          {categoriesLoading ? (
+            <p className="text-center text-stone-500 italic py-6 text-sm">Loading categories...</p>
+          ) : categoriesError ? (
+            <p className="text-center text-red-700 italic py-6 text-sm">Unable to load service categories. Please try again.</p>
+          ) : categories.length === 0 ? (
+            <p className="text-center text-stone-500 italic py-6 text-sm">No service categories available.</p>
+          ) : (
+            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 border-b border-stone-300/40">
+              {categories.map((cat: PublicCategory) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setActiveCategoryId(cat.id)}
+                  className={`whitespace-nowrap px-5 py-2.5 text-[10px] uppercase tracking-[0.2em] font-semibold transition-colors ${
+                    effectiveActiveCategoryId === cat.id
+                      ? "bg-[#1C3A27] text-[#F8F6F0] border border-[#1C3A27]"
+                      : "bg-[#EFECE6] text-[#1C3A27] border border-stone-300/60 hover:border-[#1C3A27]/40"
+                  }`}
+                >
+                  {cat.name}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* TREATMENTS GRID — filtered by the active category */}
           {treatmentsLoading ? (
-            <p className="text-center text-stone-500 italic py-20 text-sm">Loading treatments...</p>
+            <p className="text-center text-stone-500 italic py-20 text-sm">Loading services...</p>
+          ) : treatmentsError ? (
+            <p className="text-center text-red-700 italic py-20 text-sm">Unable to load services. Please try again.</p>
           ) : treatments.length === 0 ? (
-            <p className="text-center text-stone-500 italic py-20 text-sm">No treatments available right now.</p>
+            <p className="text-center text-stone-500 italic py-20 text-sm">No treatments available in this category right now.</p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {treatments.map((item) => (
+              {treatments.map((item: PublicTreatment) => (
                 <div
                   key={item.id}
                   data-aos="fade-up"
@@ -167,7 +215,7 @@ export default function Services(): React.ReactElement {
                   <div className="space-y-4">
                     <div className="img-zoom-container border border-stone-300/60 h-48">
                       <img
-                        src={item.image_url || "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?q=80&w=800&auto=format&fit=crop"}
+                        src={item.image_url || "/ISIMBI%20PICTURES%20(74).jpg"}
                         alt={item.name}
                         className="w-full h-full object-cover"
                       />
