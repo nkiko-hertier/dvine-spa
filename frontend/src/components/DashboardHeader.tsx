@@ -61,7 +61,7 @@ export default function DashboardHeader({
           aria-label="Open profile menu"
         >
           <img
-            src={avatarUrl || "/logo2.jpg.jpeg"}
+            src={avatarUrl || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=200&auto=format&fit=crop"}
             alt="Admin Profile"
             className="w-9 h-9 rounded-full object-cover border border-stone-300 shadow-sm"
           />
@@ -81,21 +81,21 @@ export default function DashboardHeader({
             </div>
 
             <Link
-              to="/dashboard"
+              to="/admin/profile"
               onClick={() => setIsDropdownOpen(false)}
               className="flex items-center space-x-2 px-4 py-2 text-stone-700 hover:bg-[#1C3A27] hover:text-[#F8F6F0] transition-colors"
             >
               <User className="w-3.5 h-3.5" />
-              <span>Dashboard</span>
+              <span>Your Profile</span>
             </Link>
 
             <Link
-              to="/dashboard/bookings"
+              to="/admin/settings"
               onClick={() => setIsDropdownOpen(false)}
               className="flex items-center space-x-2 px-4 py-2 text-stone-700 hover:bg-[#1C3A27] hover:text-[#F8F6F0] transition-colors"
             >
               <Settings className="w-3.5 h-3.5" />
-              <span>Bookings</span>
+              <span>Settings</span>
             </Link>
 
             <div className="border-t border-stone-300/65 my-1" />

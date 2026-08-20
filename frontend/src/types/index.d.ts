@@ -185,6 +185,7 @@ export interface Customer {
   full_name: string;
   phone_number: string;
   whatsapp_number: string | null;
+  email: string | null;
   source: CustomerSource | null;
   customer_since: string;
   notes: string | null;
@@ -211,14 +212,29 @@ export interface CustomerSummary {
 export interface CustomerRecentBooking {
   id: string;
   request_reference: string | null;
+  treatment_id: string;
   treatment_name: string;
   preferred_date: string;
   status: BookingStatus;
 }
 
+/** The treatment this customer books most often, across all of their
+ * requests (not just the 10 shown in recent_bookings). Powers the
+ * "Add Appointment" shortcut's pre-filled service. Null for a
+ * customer with no booking history yet. */
+export interface MostCommonTreatment {
+  id: string;
+  name: string;
+  price: string;
+  duration_minutes: number;
+  times_booked: number;
+}
+
 /** GET /admin/customers/:id — summary + notes + last 10 bookings. */
 export interface CustomerDetail extends CustomerSummary {
   notes: string | null;
+  email: string | null;
+  most_common_treatment: MostCommonTreatment | null;
   recent_bookings: CustomerRecentBooking[];
 }
 
@@ -239,6 +255,7 @@ export interface BookingRequestCustomerRef {
   full_name: string;
   phone_number: string;
   whatsapp_number: string | null;
+  email: string | null;
 }
 
 export interface BookingRequestTreatmentRef {
@@ -275,6 +292,7 @@ export interface BookingRequestCreateInput {
   full_name: string;
   phone_number: string;
   whatsapp_number?: string;
+  email?: string;
   source?: CustomerSource;
   treatment_id: string;
   preferred_date: string; // ISO date string, e.g. "2026-09-01"
@@ -353,6 +371,19 @@ export interface StaffUpdateInput {
   role?: UserRole;
   is_active?: boolean;
   phone_number?: string;
+}
+
+/** GET /admin/me — the signed-in staff member's own record. Used to
+ * gate role-restricted UI (e.g. the User Management page/nav item). */
+export interface CurrentStaff {
+  id: string;
+  email: string;
+  full_name: string;
+  role: UserRole;
+  phone_number: string | null;
+  is_active: boolean;
+  last_login: string | null;
+  created_at: string;
 }
 
 // ---------------------------------------------------------------------------

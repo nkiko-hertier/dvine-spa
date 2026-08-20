@@ -11,21 +11,21 @@ const HERO_SLIDES = [
     subtitle: "Lumina Sanctuary",
     title: "The Art of Restorative Balance",
     description: "Discover our collection of bespoke treatments, designed to harmonize body and spirit through ancient thermal techniques and organic botanical science.",
-    image: "/ISIMBI%20PICTURES%20pr_38.JPG",
+    image: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?q=80&w=1600&auto=format&fit=crop",
   },
   {
     id: 2,
     subtitle: "Holistic Wellness",
     title: "Tranquil Escapes & Deep Renewal",
     description: "Immerse yourself in deeply restorative hot stone therapy and botanical oil infusions designed to dissolve modern tension and renew vital energy.",
-    image: "/ISIMBI%20PICTURES%20pr_12.JPG",
+    image: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=1600&auto=format&fit=crop",
   },
   {
     id: 3,
     subtitle: "Apothecary Science",
     title: "Pure Botanical Clarity",
     description: "Hand-blended organic elixirs and native orchid extracts crafted to resurface dermal clarity and elevate your inner tranquility.",
-    image: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=1600&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1600334089648-b0d9d3028eb2?q=80&w=1600&auto=format&fit=crop",
   }
 ];
 
@@ -209,7 +209,7 @@ export default function Home() {
       <section className="max-w-7xl mx-auto px-6 py-20">
         <div className="relative group overflow-hidden border border-stone-300/60" data-aos="fade-up">
           <img
-            src="/ISIMBI%20PICTURES%20(74).jpg"
+            src="https://images.unsplash.com/photo-1600334089648-b0d9d3028eb2?q=80&w=1200&auto=format&fit=crop"
             alt="Deep Canopy Tissue Suite"
             className="w-full h-[500px] object-cover transition-transform duration-1000 group-hover:scale-105"
           />
@@ -226,7 +226,7 @@ export default function Home() {
             <div className="flex items-center space-x-6 border-t border-white/20 pt-6">
               <div>
                 <p className="text-[9px] uppercase tracking-[0.2em] text-stone-400">Duration & Price</p>
-                <p className="text-xs font-semibold tracking-wider text-white mt-0.5">90 MIN — 45,000 RWF</p>
+                <p className="text-xs font-semibold tracking-wider text-white mt-0.5">90 MIN — $220</p>
               </div>
               <Link to="/booking" className="btn-aside-light">
                 Book Treatment
@@ -240,7 +240,7 @@ export default function Home() {
       <section className="max-w-7xl mx-auto px-6 py-10">
         <div className="relative group overflow-hidden border border-stone-300/60" data-aos="fade-up">
           <img
-            src="/ISIMBI%20PICTURES%20(90).jpg"
+            src="https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?q=80&w=1200&auto=format&fit=crop"
             alt="Luminous Flora Facial"
             className="w-full h-[500px] object-cover transition-transform duration-1000 group-hover:scale-105"
           />
@@ -257,7 +257,7 @@ export default function Home() {
             <div className="flex items-center space-x-6 border-t border-white/20 pt-6">
               <div>
                 <p className="text-[9px] uppercase tracking-[0.2em] text-stone-400">Duration & Price</p>
-                <p className="text-xs font-semibold tracking-wider text-white mt-0.5">60 MIN — 35,000 RWF</p>
+                <p className="text-xs font-semibold tracking-wider text-white mt-0.5">60 MIN — $180</p>
               </div>
               <Link to="/booking" className="btn-aside-light">
                 Book Treatment
@@ -273,7 +273,7 @@ export default function Home() {
           <div data-aos="fade-right" className="w-full md:w-1/2">
             <div className="img-zoom-container border border-stone-300/60">
               <img
-                src="/ISIMBI%20PICTURES%20(76).jpg"
+                src="https://images.unsplash.com/photo-1515377905703-c4788e51af15?q=80&w=1200&auto=format&fit=crop"
                 alt="Thermal Vinotherapy Hydration"
                 className="w-full h-[380px] sm:h-[480px] object-cover"
               />
@@ -294,7 +294,7 @@ export default function Home() {
             <div className="pt-6 flex items-center justify-between border-t border-stone-300/50">
               <div>
                 <p className="text-[10px] uppercase tracking-[0.2em] text-stone-400">Duration & Price</p>
-                <p className="text-xs font-semibold tracking-wider text-[#1C3A27] mt-0.5">75 MIN — 40,000 RWF</p>
+                <p className="text-xs font-semibold tracking-wider text-[#1C3A27] mt-0.5">75 MIN — $210</p>
               </div>
               <Link to="/booking" className="btn-aside">
                 Book Now
@@ -358,7 +358,7 @@ export default function Home() {
               className="w-full md:w-1/2 group relative h-[420px] overflow-hidden cursor-pointer border border-white/10"
             >
               <img
-                src="/ISIMBI%20PICTURES%20(115).jpg"
+                src="https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=1000&auto=format&fit=crop"
                 alt="The Midnight Spring"
                 className="w-full h-full object-cover transition-transform duration-1000 ease-out group-hover:scale-105"
               />
@@ -384,7 +384,7 @@ export default function Home() {
               className="w-full md:w-1/2 group relative h-[420px] overflow-hidden cursor-pointer border border-white/10"
             >
               <img
-                src="/ISIMBI%20PICTURES%20(106).jpg"
+                src="https://images.unsplash.com/photo-1519823551278-64ac92734fb1?q=80&w=1000&auto=format&fit=crop"
                 alt="Botanical Alchemy"
                 className="w-full h-full object-cover transition-transform duration-1000 ease-out group-hover:scale-105"
               />
@@ -415,13 +415,13 @@ export default function Home() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
           <div data-aos="fade-up" className="img-zoom-container border border-stone-300/60 h-64">
-            <img src="/ISIMBI%20PICTURES%20(32).jpg" alt="Sanctuary Suite" className="w-full h-full object-cover" />
+            <img src="https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=800&auto=format&fit=crop" alt="Sanctuary Suite" className="w-full h-full object-cover" />
           </div>
           <div data-aos="fade-up" data-aos-delay="100" className="img-zoom-container border border-stone-300/60 h-64">
-            <img src="/ISIMBI%20PICTURES%20(117).jpg" alt="Therapy Oils" className="w-full h-full object-cover" />
+            <img src="https://images.unsplash.com/photo-1544161515-4ab6ce6db874?q=80&w=800&auto=format&fit=crop" alt="Therapy Oils" className="w-full h-full object-cover" />
           </div>
           <div data-aos="fade-up" data-aos-delay="200" className="img-zoom-container border border-stone-300/60 h-64">
-            <img src="/ISIMBI%20PICTURES%20(120).jpg" alt="Restoration Room" className="w-full h-full object-cover" />
+            <img src="https://images.unsplash.com/photo-1584132967334-10e028bd69f7?q=80&w=800&auto=format&fit=crop" alt="Restoration Room" className="w-full h-full object-cover" />
           </div>
         </div>
       </section>
@@ -432,7 +432,7 @@ export default function Home() {
           <div data-aos="fade-left" className="w-full md:w-1/2">
             <div className="img-zoom-container border border-stone-300/60">
               <img
-                src="/ISIMBI%20PICTURES%20(125).jpg"
+                src="https://images.unsplash.com/photo-1584132967334-10e028bd69f7?q=80&w=1200&auto=format&fit=crop"
                 alt="Herbal Tea Lounge"
                 className="w-full h-[380px] sm:h-[450px] object-cover"
               />
@@ -483,7 +483,7 @@ export default function Home() {
       <section className="max-w-7xl mx-auto px-6 py-24">
         <div className="relative overflow-hidden border border-stone-300/60" data-aos="fade-up">
           <img
-            src="/ISIMBI%20PICTURES%20pr_12.JPG"
+            src="https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=1200&auto=format&fit=crop"
             alt="Gift Card Experience"
             className="w-full h-[320px] object-cover"
           />

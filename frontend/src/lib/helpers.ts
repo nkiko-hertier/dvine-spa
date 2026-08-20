@@ -59,6 +59,7 @@ import type {
   StaffInviteInput,
   StaffInviteResult,
   StaffUpdateInput,
+  CurrentStaff,
   AuditLog,
   AuditLogListParams,
   DailyRequestsSummary,
@@ -215,6 +216,32 @@ export function useEasyLookupBookingRequest() {
       );
       return data.data;
     },
+  });
+}
+
+// =============================================================================
+// ADMIN — current staff identity (who am I / what can I do)
+// =============================================================================
+
+/**
+ * GET /admin/me — resolves the signed-in Clerk session to its local
+ * staff row, including `role`. This is what the UI (Sidebar's "User
+ * Management" link, the /dashboard/users route guard) reads to decide
+ * what to show — the backend's requireRole() checks are the real
+ * enforcement, this just avoids flashing admin-only controls at staff
+ * who'll get a 403 the moment they click.
+ */
+export function useCurrentStaff(options?: ExtraQueryOptions<CurrentStaff>) {
+  return useQuery({
+    queryKey: ["admin", "me"],
+    queryFn: async () => {
+      const { data } = await apiClient.get<ApiSuccess<CurrentStaff>>(
+        ENDPOINTS.admin.me.getMe()
+      );
+      return data.data;
+    },
+    staleTime: 5 * 60 * 1000,
+    ...options,
   });
 }
 

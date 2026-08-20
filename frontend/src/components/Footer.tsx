@@ -102,11 +102,11 @@ export default function Footer() {
                     <p>© {new Date().getFullYear()} D'vine Spa Kigali. All Rights Reserved.</p>
 
                     <div className="flex items-center space-x-6">
-                        <Link to="/about" className="hover:text-white transition-colors uppercase tracking-[0.1em]">
-                            About Us
+                        <Link to="/privacy-policy" className="hover:text-white transition-colors uppercase tracking-[0.1em]">
+                            Privacy Policy
                         </Link>
-                        <Link to="/contact" className="hover:text-white transition-colors uppercase tracking-[0.1em]">
-                            Contact
+                        <Link to="/terms-of-service" className="hover:text-white transition-colors uppercase tracking-[0.1em]">
+                            Terms of Service
                         </Link>
                     </div>
                 </div>

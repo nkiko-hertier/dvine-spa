@@ -1,9 +1,15 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Layers, Briefcase, CalendarCheck, Plus } from "lucide-react";
+import { LayoutDashboard, Layers, Briefcase, CalendarCheck, Users, ShieldCheck, Plus } from "lucide-react";
+import { useCurrentStaff } from "../lib/helpers";
 
 export default function Sidebar(): React.ReactElement {
   const location = useLocation();
+  // Used only to decide whether to *show* the User Management link —
+  // the backend's requireRole(admin) on /admin/staff/* is what actually
+  // enforces the restriction, not this check.
+  const { data: me } = useCurrentStaff();
+  const isAdmin = me?.role === "admin";
 
   // Updated paths to match /dashboard/... structure
   const navItems = [
@@ -11,6 +17,8 @@ export default function Sidebar(): React.ReactElement {
     { name: "Categories", path: "/dashboard/categories", icon: Layers },
     { name: "Services", path: "/dashboard/services", icon: Briefcase },
     { name: "Bookings", path: "/dashboard/bookings", icon: CalendarCheck },
+    { name: "Clients", path: "/dashboard/customers", icon: Users },
+    ...(isAdmin ? [{ name: "User Management", path: "/dashboard/users", icon: ShieldCheck }] : []),
   ];
 
   return (
@@ -56,7 +64,7 @@ export default function Sidebar(): React.ReactElement {
       {/* BOTTOM ACTION BUTTON */}
       <div className="pt-6 border-t border-emerald-900/60">
         <Link
-          to="/dashboard/bookings"
+          to="/dashboard/booking/new"
           className="flex items-center justify-center space-x-2 w-full bg-[#F8F6F0] text-[#1C3A27] py-3 text-[10px] uppercase tracking-[0.2em] font-semibold hover:bg-white transition-colors shadow-sm"
         >
           <Plus className="w-4 h-4" />

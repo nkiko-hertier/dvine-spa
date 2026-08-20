@@ -1,5 +1,4 @@
 import React, { useEffect } from "react";
-import { Link } from "react-router-dom";
 import AOS from "aos";
 import "aos/dist/aos.css";
 import Header from "../components/Header";
@@ -52,7 +51,7 @@ export default function About(): React.ReactElement {
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{
-            backgroundImage: `url('/ISIMBI%20PICTURES%20(32).jpg')`,
+            backgroundImage: `url('https://images.unsplash.com/photo-1544161515-4ab6ce6db874?q=80&w=1600&auto=format&fit=crop')`,
           }}
         />
         <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/70 to-black/50" />
@@ -84,7 +83,7 @@ export default function About(): React.ReactElement {
         <div className="relative" data-aos="fade-left">
           <div className="border border-stone-300/80 p-2 bg-[#EFECE6] shadow-sm">
             <img
-              src="/ISIMBI%20PICTURES%20(74).jpg"
+              src="https://images.unsplash.com/photo-1600334089648-b0d9d3028eb2?q=80&w=800&auto=format&fit=crop"
               alt="D'vine Spa Ambiance Kigali"
               className="w-full h-80 sm:h-[400px] object-cover"
             />
@@ -208,19 +207,19 @@ export default function About(): React.ReactElement {
           </p>
 
           <div className="pt-2">
-            <Link
-              to="/services"
+            <a
+              href="/services"
               className="btn-aside inline-block px-8 py-3 text-xs tracking-widest uppercase font-semibold"
             >
               Explore Treatments
-            </Link>
+            </a>
           </div>
         </div>
 
         <div className="relative" data-aos="fade-left">
           <div className="border border-stone-300/80 p-2 bg-[#EFECE6]">
             <img
-              src="/ISIMBI%20PICTURES%20(75).jpg"
+              src="https://images.unsplash.com/photo-1600334089648-b0d9d3028eb2?q=80&w=800&auto=format&fit=crop"
               alt="D'vine Spa Ambiance Kigali"
               className="w-full h-80 sm:h-[400px] object-cover"
             />

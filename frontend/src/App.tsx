@@ -10,7 +10,11 @@ import NotFound from "./pages/NotFound";
 import DashbordServices from "./pages/admin/Services";
 import DashboardBookings from "./pages/admin/Booking";
 import DashboardCategories from "./pages/admin/Categories";
+import Customers from "./pages/admin/Customers";
+import CustomerDetail from "./pages/admin/CustomerDetail";
+import UserManagement from "./pages/admin/UserManagement";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminOnlyRoute from "./components/AdminOnlyRoute";
 import "./App.css"; 
 import "./index.css";
 
@@ -55,6 +59,30 @@ export default function App() {
                         <ProtectedRoute>
                             <DashboardCategories />
                         </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/dashboard/customers"
+                    element={
+                        <ProtectedRoute>
+                            <Customers />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/dashboard/customers/:id"
+                    element={
+                        <ProtectedRoute>
+                            <CustomerDetail />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/dashboard/users"
+                    element={
+                        <AdminOnlyRoute>
+                            <UserManagement />
+                        </AdminOnlyRoute>
                     }
                 />
                 <Route path="*" element={<NotFound />} />

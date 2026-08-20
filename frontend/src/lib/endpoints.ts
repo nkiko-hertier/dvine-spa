@@ -31,6 +31,9 @@ export const ENDPOINTS = {
   },
 
   admin: {
+    me: {
+      getMe: () => `/admin/me`,
+    },
     dashboard: {
       getSummary: () => `/admin/dashboard/summary`,
       getStats: () => `/admin/dashboard/stats`,
