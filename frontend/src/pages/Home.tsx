@@ -25,7 +25,7 @@ const HERO_SLIDES = [
     subtitle: "Apothecary Science",
     title: "Pure Botanical Clarity",
     description: "Hand-blended organic elixirs and native orchid extracts crafted to resurface dermal clarity and elevate your inner tranquility.",
-    image: "/ISIMBI%20PICTURES%20(90).jpg",
+    image: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=1600&auto=format&fit=crop",
   }
 ];
 
