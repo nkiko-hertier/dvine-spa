@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { LogOut, User, Settings, ChevronDown } from "lucide-react";
 import { useUser, useClerk } from "@clerk/clerk-react";
+import { UserButton } from '@clerk/react';
 import NotificationPanel from "./NotificationPanel";
 
 interface DashboardHeaderProps {
@@ -55,7 +56,9 @@ export default function DashboardHeader({
       <div className="flex items-center space-x-2">
       <NotificationPanel />
       <div className="relative" ref={dropdownRef}>
+        <UserButton />
         <button
+          hidden
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           className="flex items-center space-x-2.5 focus:outline-none group p-1 hover:bg-stone-200/50 transition-colors"
           aria-label="Open profile menu"
