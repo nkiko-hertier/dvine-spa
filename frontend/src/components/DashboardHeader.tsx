@@ -1,8 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { LogOut, User, Settings, ChevronDown } from "lucide-react";
-import { useUser, useClerk } from "@clerk/clerk-react";
-import { UserButton } from '@clerk/react';
+import { useUser, useClerk, UserButton } from "@clerk/clerk-react";
 import NotificationPanel from "./NotificationPanel";
 
 interface DashboardHeaderProps {
