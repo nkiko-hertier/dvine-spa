@@ -5,6 +5,10 @@
       "destination": "http://5.189.175.8:4000/:path*"
     },
     {
+      "source": "/socket.io/:path*",
+      "destination": "http://5.189.175.8:4000/socket.io/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
