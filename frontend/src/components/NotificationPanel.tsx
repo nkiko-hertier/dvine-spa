@@ -64,8 +64,14 @@ export default function NotificationPanel(): React.ReactElement {
         </button>
 
         {isOpen && (
-          <div className="absolute right-0 mt-2 w-80 bg-[#EFECE6] border border-stone-300 shadow-lg z-50 text-xs max-h-[26rem] flex flex-col">
-            <div className="px-4 py-3 border-b border-stone-300/65 flex items-center justify-between">
+          <div
+            className={`
+              bg-[#EFECE6] border border-stone-300 shadow-lg z-50 text-xs flex flex-col
+              fixed top-16 left-4 right-4 max-h-[calc(100vh-6rem)] w-auto
+              md:absolute md:right-0 md:mt-2 md:left-auto md:top-auto md:w-80 md:max-h-[26rem]
+            `}
+          >
+            <div className="px-4 py-3 border-b border-stone-300/65 flex items-center justify-between shrink-0">
               <p className="font-semibold text-[#1C3A27]">Needs Attention</p>
               <span className="text-[10px] text-stone-500 uppercase tracking-wider">
                 {total} pending
