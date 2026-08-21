@@ -24,7 +24,7 @@ export const apiClient = axios.create({
  * public routes don't require it anyway.
  */
 apiClient.interceptors.request.use(async (config) => {
-  const token = await window.Clerk?.session?.getToken();
+  const token = await window.Clerk?.session?.getToken({template: 'default'});
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
