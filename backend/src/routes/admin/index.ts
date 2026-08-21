@@ -9,6 +9,7 @@ import { adminBookingRequestsRouter } from './bookingRequests.js';
 import { adminAuditLogsRouter } from './auditLogs.js';
 import { adminDashboardRouter } from './dashboard.js';
 import { adminStaffRouter } from './staff.js';
+import { adminMeRouter } from './me.js';
 
 export const adminRouter = Router();
 
@@ -23,6 +24,8 @@ adminRouter.use('/customers', adminCustomersRouter);
 adminRouter.use('/booking-requests', adminBookingRequestsRouter);
 adminRouter.use('/audit-logs', adminAuditLogsRouter);
 adminRouter.use('/dashboard', adminDashboardRouter);
+
+adminRouter.use('/me', adminMeRouter);
 
 // Staff management is admin-only per the role matrix in §2.4.
 adminRouter.use('/staff', requireRole(UserRole.admin), adminStaffRouter);

@@ -243,6 +243,16 @@ registry.registerPath({
 });
 
 // ------------------------------------------------------------
+// Admin — me (any authenticated staff member)
+// ------------------------------------------------------------
+
+registry.registerPath({
+  method: 'get', path: '/admin/me', tags: ['Admin / Me'], security: bearerAuth,
+  summary: "The signed-in staff member's own record, including role — lets the frontend gate admin-only UI (e.g. User Management) without guessing from Clerk metadata.",
+  responses: { 200: okJson('Current staff member', staffSchema), ...commonErrorResponses },
+});
+
+// ------------------------------------------------------------
 // Admin — staff (§9, admin role only)
 // ------------------------------------------------------------
 
