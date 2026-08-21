@@ -78,6 +78,7 @@ adminStaffRouter.post('/invite', async (req, res, next) => {
     await clerkClient.invitations.createInvitation({
       emailAddress: input.email,
       publicMetadata: { role: input.role, pending_full_name: input.full_name },
+      redirectUrl: `${env.DASHBOARD_URL}`
     });
 
     res.status(202).json({ success: true, data: { invitation_status: 'pending', email: input.email } });
