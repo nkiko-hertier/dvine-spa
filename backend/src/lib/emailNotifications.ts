@@ -46,7 +46,7 @@ type BookingWithRelations = BookingRequest & {
 
 function buildContext(b: BookingWithRelations): BookingEmailContext {
   return {
-    requestReference: b.requestReference,
+    requestReference: b.requestReference || '',
     customerName: b.customer.fullName,
     customerPhone: b.customer.phoneNumber,
     customerEmail: b.customer.email,
