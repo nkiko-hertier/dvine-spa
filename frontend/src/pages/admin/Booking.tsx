@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import Sidebar from "../../components/Sidebar";
 import DashboardHeader from "../../components/DashboardHeader";
@@ -9,15 +9,20 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
+  Download,
 } from "lucide-react";
 import { apiClient } from "../../lib/apiClient";
 import { ENDPOINTS } from "../../lib/endpoints";
 import {
   useAdminBookingRequests,
   useAdminTreatments,
+  useAdminCustomers,
 } from "../../lib/helpers";
 import { STATUS_LABEL, STATUS_CLASS, formatDateTime } from "../../lib/bookingStatus";
+import { downloadBookingConfirmationPdf } from "../../lib/bookingPdf";
 import type { BookingRequest } from "../../types";
+
+type ClientFilter = "all" | "new" | "repeating";
 
 export default function DashboardBookings(): React.ReactElement {
   const queryClient = useQueryClient();
@@ -25,6 +30,7 @@ export default function DashboardBookings(): React.ReactElement {
   // Real paginated bookings from backend
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [clientFilter, setClientFilter] = useState<ClientFilter>("all");
   const itemsPerPage = 10;
 
   const { data: bookingsData, isLoading, isError } = useAdminBookingRequests({
@@ -33,6 +39,9 @@ export default function DashboardBookings(): React.ReactElement {
     search: searchQuery || undefined,
     sort: "-created_at",
   });
+
+  // All customers — used to determine new vs repeating client
+  const { data: customersData, isError: customersError } = useAdminCustomers({ limit: 100, sort: "-customerSince" });
 
   // Treatments for the manual create modal (real catalog)
   const { data: treatmentsData } = useAdminTreatments({ limit: 100, is_active: true });
@@ -53,12 +62,33 @@ export default function DashboardBookings(): React.ReactElement {
 
   const treatments = treatmentsData?.data ?? [];
 
+  // Build a lookup map: customer_id -> total_requests
+  const customerRequestCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    (customersData?.data ?? []).forEach((c) => {
+      map.set(c.id, c.total_requests ?? 0);
+    });
+    return map;
+  }, [customersData]);
+
+  // Determine if a booking's client is new (first request) or repeating.
+  // If customer data failed to load, fall back to "unknown" classification.
+  const isNewClient = (booking: BookingRequest): boolean => {
+    if (customersError) return false; // can't determine — treat as repeating to avoid false "new" labels
+    const count = customerRequestCounts.get(booking.customer.id) ?? 0;
+    return count <= 1;
+  };
+
   const handleOpenViewModal = (booking: BookingRequest) => {
     setSelectedBooking(booking);
   };
 
   const handleCloseViewModal = () => {
     setSelectedBooking(null);
+  };
+
+  const handleDownloadPdf = (booking: BookingRequest) => {
+    downloadBookingConfirmationPdf(booking);
   };
 
   const handleCreateBookingSubmit = async (e: React.FormEvent) => {
@@ -103,9 +133,17 @@ export default function DashboardBookings(): React.ReactElement {
     }
   };
 
-  const currentTableData = bookingsData?.data ?? [];
+  const allTableData = bookingsData?.data ?? [];
   const total = bookingsData?.meta?.total ?? 0;
   const totalPages = bookingsData?.meta?.total_pages ?? 1;
+
+  // Apply client type filter
+  const currentTableData = useMemo(() => {
+    if (clientFilter === "all") return allTableData;
+    return allTableData.filter((b) =>
+      clientFilter === "new" ? isNewClient(b) : !isNewClient(b)
+    );
+  }, [allTableData, clientFilter, customerRequestCounts]);
 
   return (
     <div className="min-h-screen bg-[#F8F6F0] flex font-['Work_Sans',sans-serif] text-[#1C3A27]">
@@ -136,13 +174,28 @@ export default function DashboardBookings(): React.ReactElement {
               />
             </div>
 
-            <button
-              onClick={() => setIsNewModalOpen(true)}
-              className="inline-flex items-center justify-center space-x-2 bg-[#1C3A27] text-[#F8F6F0] px-5 py-2.5 text-[10px] uppercase tracking-[0.2em] font-semibold hover:bg-[#0A2619] transition-colors shadow-sm"
-            >
-              <span className="text-lg leading-none mr-1">+</span>
-              <span>New Booking</span>
-            </button>
+            <div className="flex items-center gap-3">
+              <select
+                value={clientFilter}
+                onChange={(e) => {
+                  setClientFilter(e.target.value as ClientFilter);
+                  setPage(1);
+                }}
+                className="p-2.5 bg-[#F8F6F0] border border-stone-300 text-xs text-[#1C3A27] focus:outline-none focus:border-[#1C3A27]"
+              >
+                <option value="all">All Clients</option>
+                <option value="new">New Clients</option>
+                <option value="repeating">Repeating Clients</option>
+              </select>
+
+              <button
+                onClick={() => setIsNewModalOpen(true)}
+                className="inline-flex items-center justify-center space-x-2 bg-[#1C3A27] text-[#F8F6F0] px-5 py-2.5 text-[10px] uppercase tracking-[0.2em] font-semibold hover:bg-[#0A2619] transition-colors shadow-sm"
+              >
+                <span className="text-lg leading-none mr-1">+</span>
+                <span>New Booking</span>
+              </button>
+            </div>
           </div>
 
           {/* TABLE SECTION */}
@@ -162,13 +215,20 @@ export default function DashboardBookings(): React.ReactElement {
               ) : isError ? (
                 <p className="text-center text-red-700 italic py-10 text-xs">Couldn't load bookings.</p>
               ) : currentTableData.length === 0 ? (
-                <p className="text-center text-stone-500 italic py-10 text-xs">No bookings found matching your search criteria.</p>
+                <p className="text-center text-stone-500 italic py-10 text-xs">
+                  {clientFilter === "all"
+                    ? "No bookings found matching your search criteria."
+                    : clientFilter === "new"
+                    ? "No new client bookings found."
+                    : "No repeating client bookings found."}
+                </p>
               ) : (
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="border-b border-stone-300 text-stone-500 uppercase tracking-widest text-[10px]">
                       <th className="py-3 px-4 font-semibold">Booking ID</th>
                       <th className="py-3 px-4 font-semibold">Client Name</th>
+                      <th className="py-3 px-4 font-semibold">Client Type</th>
                       <th className="py-3 px-4 font-semibold">Service</th>
                       <th className="py-3 px-4 font-semibold">Date & Time</th>
                       <th className="py-3 px-4 font-semibold">Status</th>
@@ -182,6 +242,17 @@ export default function DashboardBookings(): React.ReactElement {
                           {booking.request_reference || booking.id.slice(0, 8).toUpperCase()}
                         </td>
                         <td className="py-4 px-4 font-semibold">{booking.customer.full_name}</td>
+                        <td className="py-4 px-4">
+                          <span
+                            className={`inline-block px-2.5 py-1 text-[9px] uppercase tracking-widest font-semibold ${
+                              isNewClient(booking)
+                                ? "bg-blue-100 text-blue-800"
+                                : "bg-purple-100 text-purple-800"
+                            }`}
+                          >
+                            {isNewClient(booking) ? "New" : "Repeating"}
+                          </span>
+                        </td>
                         <td className="py-4 px-4 text-stone-700">{booking.treatment.name}</td>
                         <td className="py-4 px-4 text-stone-600 font-light">
                           {formatDateTime(booking.preferred_date, booking.preferred_time)}
@@ -192,13 +263,22 @@ export default function DashboardBookings(): React.ReactElement {
                           </span>
                         </td>
                         <td className="py-4 px-4 text-right">
-                          <button
-                            onClick={() => handleOpenViewModal(booking)}
-                            className="p-1.5 text-stone-600 hover:text-[#1C3A27] transition-colors inline-flex items-center justify-center bg-[#F8F6F0] border border-stone-300"
-                            title="View Submission Details"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
+                          <div className="inline-flex items-center gap-1.5">
+                            <button
+                              onClick={() => handleDownloadPdf(booking)}
+                              className="p-1.5 text-stone-600 hover:text-[#1C3A27] transition-colors inline-flex items-center justify-center bg-[#F8F6F0] border border-stone-300"
+                              title="Download Booking Confirmation (PDF)"
+                            >
+                              <Download className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleOpenViewModal(booking)}
+                              className="p-1.5 text-stone-600 hover:text-[#1C3A27] transition-colors inline-flex items-center justify-center bg-[#F8F6F0] border border-stone-300"
+                              title="View Submission Details"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { X, Check, Ban, ArrowRight } from "lucide-react";
+import { X, Check, Ban, ArrowRight, Download } from "lucide-react";
 import { useUpdateBookingRequest } from "../lib/helpers";
+import { downloadBookingConfirmationPdf } from "../lib/bookingPdf";
 import {
   STATUS_LABEL,
   STATUS_CLASS,
@@ -103,6 +104,10 @@ export default function BookingActionModal({
 
   const handleReject = () => {
     void runUpdate("cancelled", { cancellation_reason: CANCEL_REASON });
+  };
+
+  const handleDownloadPdf = () => {
+    downloadBookingConfirmationPdf(booking);
   };
 
   const advanceLabel = ADVANCE_LABEL[booking.status];
@@ -250,14 +255,28 @@ export default function BookingActionModal({
           {!showActions ? (
             <div className="w-full flex justify-end">
               <button
+                onClick={handleDownloadPdf}
+                className="inline-flex items-center space-x-1 bg-[#1C3A27] text-[#F8F6F0] px-4 py-2 text-[10px] uppercase tracking-[0.2em] font-semibold hover:bg-[#0A2619] transition-colors mr-2"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Download PDF</span>
+              </button>
+              <button
                 onClick={onClose}
-                className="bg-[#1C3A27] text-[#F8F6F0] px-6 py-2.5 text-[10px] uppercase tracking-[0.2em] font-semibold hover:bg-[#0A2619] transition-colors"
+                className="bg-stone-300 text-stone-800 px-6 py-2.5 text-[10px] uppercase tracking-[0.2em] font-semibold hover:bg-stone-400 transition-colors"
               >
                 Close
               </button>
             </div>
           ) : showConfirmForm ? (
             <div className="w-full flex justify-end">
+              <button
+                onClick={handleDownloadPdf}
+                className="inline-flex items-center space-x-1 bg-[#1C3A27] text-[#F8F6F0] px-4 py-2 text-[10px] uppercase tracking-[0.2em] font-semibold hover:bg-[#0A2619] transition-colors mr-2"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Download PDF</span>
+              </button>
               <button
                 onClick={onClose}
                 className="bg-stone-300 text-stone-800 px-5 py-2 text-[10px] uppercase tracking-[0.2em] font-semibold hover:bg-stone-400 transition-colors"
@@ -286,12 +305,21 @@ export default function BookingActionModal({
                 </button>
               </div>
 
-              <button
-                onClick={onClose}
-                className="bg-stone-300 text-stone-800 px-5 py-2 text-[10px] uppercase tracking-[0.2em] font-semibold hover:bg-stone-400 transition-colors"
-              >
-                Close
-              </button>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={handleDownloadPdf}
+                  className="inline-flex items-center space-x-1 bg-[#1C3A27] text-[#F8F6F0] px-4 py-2 text-[10px] uppercase tracking-[0.2em] font-semibold hover:bg-[#0A2619] transition-colors"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Download PDF</span>
+                </button>
+                <button
+                  onClick={onClose}
+                  className="bg-stone-300 text-stone-800 px-5 py-2 text-[10px] uppercase tracking-[0.2em] font-semibold hover:bg-stone-400 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
             </>
           )}
         </div>
