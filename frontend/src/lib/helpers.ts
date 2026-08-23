@@ -607,8 +607,6 @@ export function useUpdateBookingRequest(id: string) {
  */
 export const NOTIFICATION_TRACKED_STATUSES: BookingStatus[] = [
   "new_request",
-  "contacted",
-  "confirmed",
 ];
 
 const NOTIFICATIONS_QUERY_KEY = ["admin", "bookingRequests", "list", "notifications"] as const;

@@ -45,20 +45,19 @@ bookingRequestsRouter.post('/', bookingCreateLimiter, async (req, res, next) => 
     }
 
     // Upsert-by-phone: reuse the existing customer if this phone number has
-    // booked before. On re-book, update email only if the customer doesn't
+    // booked before. On re-book, only backfill email if the customer doesn't
     // already have one — don't overwrite an existing email with a blank one.
+    // The existing row is looked up first so the upsert's `update` clause is
+    // always a plain, valid data object (never a conditional expression),
+    // which is what Prisma's generated types actually require here.
+    const existingCustomer = await prisma.customer.findUnique({
+      where: { phoneNumber: input.phone_number },
+    });
+    const shouldBackfillEmail = Boolean(input.email && existingCustomer && !existingCustomer.email);
+
     const customer = await prisma.customer.upsert({
       where: { phoneNumber: input.phone_number },
-      update: {
-        ...(input.email
-          ? {
-              email: {
-                // Prisma conditional: set only if currently null
-                // We handle this with a raw conditional below instead
-              },
-            }
-          : {}),
-      },
+      update: shouldBackfillEmail ? { email: input.email } : {},
       create: {
         fullName: input.full_name,
         phoneNumber: input.phone_number,
@@ -68,16 +67,6 @@ bookingRequestsRouter.post('/', bookingCreateLimiter, async (req, res, next) => 
         notes: input.notes,
       },
     });
-
-    // If a new email was supplied on re-book and the customer has none, update it.
-    // We do this as a separate update to avoid a complex Prisma conditional.
-    if (input.email && !customer.email) {
-      await prisma.customer.update({
-        where: { id: customer.id },
-        data: { email: input.email },
-      });
-      customer.email = input.email;
-    }
 
     const bookingRequest = await prisma.bookingRequest.create({
       data: {
@@ -191,6 +180,13 @@ bookingRequestsRouter.get('/:id/confirmation', async (req, res, next) => {
   }
 });
 
+/**
+ * GET /booking-requests/easy-lookup — public — a laxer variant of /lookup.
+ * Still requires both the reference and the phone number to match the same
+ * booking; this previously matched on phone number alone, which let anyone
+ * who knew (or guessed) a customer's phone number pull up their most recent
+ * booking status without knowing their reference code.
+ */
 bookingRequestsRouter.get('/easy-lookup', async (req, res, next) => {
   try {
     const input = parseOrThrow(bookingRequestLookupSchema, {
@@ -199,10 +195,12 @@ bookingRequestsRouter.get('/easy-lookup', async (req, res, next) => {
     });
 
     const bookingRequest = await prisma.bookingRequest.findFirst({
-      where: { customer: { phoneNumber: input.phone_number } },
+      where: { requestReference: input.reference, customer: { phoneNumber: input.phone_number } },
       include: { treatment: true },
     });
 
+    // Same 404 whether the reference doesn't exist or the phone doesn't
+    // match, so a wrong guess can't be used to enumerate valid references.
     if (!bookingRequest) throw AppError.notFound('No booking request found for that reference and phone number.');
 
     ok(res, {

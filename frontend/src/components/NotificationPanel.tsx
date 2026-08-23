@@ -7,8 +7,8 @@ import type { BookingRequest } from "../types";
 
 /**
  * Bell icon + dropdown panel of booking requests still needing attention.
- * By default that means status in [new_request, contacted, confirmed] —
- * see NOTIFICATION_TRACKED_STATUSES in lib/helpers.ts. The list is fetched
+ * By default that means brand-new requests only — see
+ * NOTIFICATION_TRACKED_STATUSES in lib/helpers.ts. The list is fetched
  * over REST and kept live by a Socket.IO connection to the backend (see
  * lib/socket.ts / useRealtimeNotifications) — the socket only triggers a
  * refetch, since the raw pg_notify payloads don't carry the customer/
