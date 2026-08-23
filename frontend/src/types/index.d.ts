@@ -256,6 +256,11 @@ export interface BookingRequestCustomerRef {
   phone_number: string;
   whatsapp_number: string | null;
   email: string | null;
+  /** Total booking requests this customer has ever made (including this one). */
+  total_requests: number;
+  /** "repeating" once total_requests > 1 — same definition used by the
+   * client_type filter on /admin/booking-requests and /admin/customers. */
+  client_type: "new" | "repeating";
 }
 
 export interface BookingRequestTreatmentRef {
@@ -323,6 +328,24 @@ export interface BookingRequestLookupResult {
   treatment_name: string;
   confirmed_date: string | null;
   confirmed_time: string | null;
+}
+
+/**
+ * GET /booking-requests/:id/confirmation — public, no auth. Only resolves
+ * for completed bookings; this is what the QR code on the downloaded PDF
+ * confirmation links to (frontend route /booking-confirmation/:id).
+ */
+export interface BookingConfirmationPublic {
+  id: string;
+  request_reference: string | null;
+  status: BookingStatus;
+  customer_name: string;
+  treatment_name: string;
+  category_name: string | null;
+  duration_minutes: number;
+  confirmed_date: string | null;
+  confirmed_time: string | null;
+  completed_at: string | null;
 }
 
 /** POST /booking-requests response — leaner than the admin BookingRequest shape. */
@@ -478,6 +501,8 @@ export interface CustomerListParams extends PaginationParams {
   search?: string;
   source?: CustomerSource;
   has_pending?: boolean;
+  /** "repeating" = more than one booking request on file. */
+  client_type?: "new" | "repeating";
   /** Allowed: customer_since | full_name | last_activity */
   sort?: string;
 }
@@ -489,6 +514,8 @@ export interface BookingRequestListParams extends PaginationParams {
   category_id?: string;
   customer_id?: string;
   channel?: CustomerSource;
+  /** "repeating" = more than one booking request on file for that customer. */
+  client_type?: "new" | "repeating";
   /** ISO date, e.g. "2026-09-01" — filters on preferred_date. */
   date_from?: string;
   date_to?: string;

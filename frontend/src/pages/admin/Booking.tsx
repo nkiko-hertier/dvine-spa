@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import Sidebar from "../../components/Sidebar";
 import DashboardHeader from "../../components/DashboardHeader";
@@ -16,7 +16,6 @@ import { ENDPOINTS } from "../../lib/endpoints";
 import {
   useAdminBookingRequests,
   useAdminTreatments,
-  useAdminCustomers,
 } from "../../lib/helpers";
 import { STATUS_LABEL, STATUS_CLASS, formatDateTime } from "../../lib/bookingStatus";
 import { downloadBookingConfirmationPdf } from "../../lib/bookingPdf";
@@ -37,11 +36,12 @@ export default function DashboardBookings(): React.ReactElement {
     page,
     limit: itemsPerPage,
     search: searchQuery || undefined,
+    // Filtered server-side now (see admin/booking-requests client_type
+    // param) so pagination totals stay correct instead of re-filtering
+    // whatever page happened to already be loaded.
+    client_type: clientFilter === "all" ? undefined : clientFilter,
     sort: "-created_at",
   });
-
-  // All customers — used to determine new vs repeating client
-  const { data: customersData, isError: customersError } = useAdminCustomers({ limit: 100, sort: "-customerSince" });
 
   // Treatments for the manual create modal (real catalog)
   const { data: treatmentsData } = useAdminTreatments({ limit: 100, is_active: true });
@@ -54,6 +54,7 @@ export default function DashboardBookings(): React.ReactElement {
   const [newClientName, setNewClientName] = useState<string>("");
   const [newPhone, setNewPhone] = useState<string>("");
   const [newWhatsapp, setNewWhatsapp] = useState<string>("");
+  const [newEmail, setNewEmail] = useState<string>("");
   const [newTreatmentId, setNewTreatmentId] = useState<string>("");
   const [newDate, setNewDate] = useState<string>("");
   const [newTime, setNewTime] = useState<string>("");
@@ -61,23 +62,6 @@ export default function DashboardBookings(): React.ReactElement {
   const [createError, setCreateError] = useState<string>("");
 
   const treatments = treatmentsData?.data ?? [];
-
-  // Build a lookup map: customer_id -> total_requests
-  const customerRequestCounts = useMemo(() => {
-    const map = new Map<string, number>();
-    (customersData?.data ?? []).forEach((c) => {
-      map.set(c.id, c.total_requests ?? 0);
-    });
-    return map;
-  }, [customersData]);
-
-  // Determine if a booking's client is new (first request) or repeating.
-  // If customer data failed to load, fall back to "unknown" classification.
-  const isNewClient = (booking: BookingRequest): boolean => {
-    if (customersError) return false; // can't determine — treat as repeating to avoid false "new" labels
-    const count = customerRequestCounts.get(booking.customer.id) ?? 0;
-    return count <= 1;
-  };
 
   const handleOpenViewModal = (booking: BookingRequest) => {
     setSelectedBooking(booking);
@@ -88,7 +72,7 @@ export default function DashboardBookings(): React.ReactElement {
   };
 
   const handleDownloadPdf = (booking: BookingRequest) => {
-    downloadBookingConfirmationPdf(booking);
+    void downloadBookingConfirmationPdf(booking);
   };
 
   const handleCreateBookingSubmit = async (e: React.FormEvent) => {
@@ -105,6 +89,7 @@ export default function DashboardBookings(): React.ReactElement {
         full_name: newClientName,
         phone_number: newPhone,
         whatsapp_number: newWhatsapp || undefined,
+        email: newEmail || undefined,
         treatment_id: newTreatmentId,
         preferred_date: newDate,
         preferred_time: newTime,
@@ -118,6 +103,7 @@ export default function DashboardBookings(): React.ReactElement {
       setNewClientName("");
       setNewPhone("");
       setNewWhatsapp("");
+      setNewEmail("");
       setNewTreatmentId("");
       setNewDate("");
       setNewTime("");
@@ -133,17 +119,9 @@ export default function DashboardBookings(): React.ReactElement {
     }
   };
 
-  const allTableData = bookingsData?.data ?? [];
+  const currentTableData = bookingsData?.data ?? [];
   const total = bookingsData?.meta?.total ?? 0;
   const totalPages = bookingsData?.meta?.total_pages ?? 1;
-
-  // Apply client type filter
-  const currentTableData = useMemo(() => {
-    if (clientFilter === "all") return allTableData;
-    return allTableData.filter((b) =>
-      clientFilter === "new" ? isNewClient(b) : !isNewClient(b)
-    );
-  }, [allTableData, clientFilter, customerRequestCounts]);
 
   return (
     <div className="min-h-screen bg-[#F8F6F0] flex font-['Work_Sans',sans-serif] text-[#1C3A27]">
@@ -245,12 +223,12 @@ export default function DashboardBookings(): React.ReactElement {
                         <td className="py-4 px-4">
                           <span
                             className={`inline-block px-2.5 py-1 text-[9px] uppercase tracking-widest font-semibold ${
-                              isNewClient(booking)
+                              booking.customer.client_type === "new"
                                 ? "bg-blue-100 text-blue-800"
                                 : "bg-purple-100 text-purple-800"
                             }`}
                           >
-                            {isNewClient(booking) ? "New" : "Repeating"}
+                            {booking.customer.client_type === "new" ? "New" : "Repeating"}
                           </span>
                         </td>
                         <td className="py-4 px-4 text-stone-700">{booking.treatment.name}</td>
@@ -264,13 +242,15 @@ export default function DashboardBookings(): React.ReactElement {
                         </td>
                         <td className="py-4 px-4 text-right">
                           <div className="inline-flex items-center gap-1.5">
-                            <button
-                              onClick={() => handleDownloadPdf(booking)}
-                              className="p-1.5 text-stone-600 hover:text-[#1C3A27] transition-colors inline-flex items-center justify-center bg-[#F8F6F0] border border-stone-300"
-                              title="Download Booking Confirmation (PDF)"
-                            >
-                              <Download className="w-4 h-4" />
-                            </button>
+                            {booking.status === "completed" && (
+                              <button
+                                onClick={() => handleDownloadPdf(booking)}
+                                className="p-1.5 text-stone-600 hover:text-[#1C3A27] transition-colors inline-flex items-center justify-center bg-[#F8F6F0] border border-stone-300"
+                                title="Download Booking Confirmation (PDF)"
+                              >
+                                <Download className="w-4 h-4" />
+                              </button>
+                            )}
                             <button
                               onClick={() => handleOpenViewModal(booking)}
                               className="p-1.5 text-stone-600 hover:text-[#1C3A27] transition-colors inline-flex items-center justify-center bg-[#F8F6F0] border border-stone-300"
@@ -370,6 +350,17 @@ export default function DashboardBookings(): React.ReactElement {
                       className="w-full p-2.5 bg-[#F8F6F0] border border-stone-300 text-xs text-[#1C3A27] placeholder-stone-400 focus:outline-none focus:border-[#1C3A27]"
                     />
                   </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[10px] uppercase tracking-wider text-stone-600 font-semibold">Email</label>
+                  <input
+                    type="email"
+                    placeholder="client@example.com"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    className="w-full p-2.5 bg-[#F8F6F0] border border-stone-300 text-xs text-[#1C3A27] placeholder-stone-400 focus:outline-none focus:border-[#1C3A27]"
+                  />
                 </div>
 
                 <div className="space-y-1">

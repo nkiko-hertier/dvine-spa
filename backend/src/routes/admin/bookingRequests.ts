@@ -6,7 +6,12 @@ import { ok, okList, parsePagination, buildPaginationMeta } from '../../lib/resp
 import { AppError } from '../../lib/errors.js';
 import { parseOrThrow } from '../../lib/validate.js';
 import { asArray, asString, parseDate, parseSort } from '../../lib/queryParams.js';
-import { bookingRequestUpdateSchema, customerSourceSchema, bookingStatusSchema } from '../../schemas/index.js';
+import {
+  bookingRequestUpdateSchema,
+  customerSourceSchema,
+  bookingStatusSchema,
+  clientTypeSchema,
+} from '../../schemas/index.js';
 import { assertValidTransition } from '../../lib/bookingStatusMachine.js';
 import { timeStringToDate } from '../../lib/time.js';
 import { serializeAuditLog } from '../../lib/serializers.js';
@@ -27,6 +32,8 @@ adminBookingRequestsRouter.get('/', async (req, res, next) => {
     const customerId = asString(req.query.customer_id);
     const channelRaw = asString(req.query.channel);
     const channel = channelRaw ? parseOrThrow(customerSourceSchema, channelRaw) : undefined;
+    const clientTypeRaw = asString(req.query.client_type);
+    const clientType = clientTypeRaw ? parseOrThrow(clientTypeSchema, clientTypeRaw) : undefined;
     const dateFrom = parseDate(req.query.date_from);
     const dateTo = parseDate(req.query.date_to);
     const createdFrom = parseDate(req.query.created_from);
@@ -35,11 +42,27 @@ adminBookingRequestsRouter.get('/', async (req, res, next) => {
     const sortRaw = asString(req.query.sort) ?? '-createdAt';
     const orderBy = parseSort(sortRaw, SORT_FIELDS, 'createdAt', 'desc');
 
+    // "New" vs "repeating" client filter — this used to be applied entirely
+    // client-side (re-filtering whatever page of results happened to be
+    // loaded), which broke pagination totals. Resolve it here instead by
+    // first finding which customers qualify (via the same customer_summary
+    // total_requests > 1 definition the Clients page uses), then filtering
+    // booking requests by that customer id set.
+    let clientTypeCustomerIds: string[] | undefined;
+    if (clientType) {
+      const matches = await prisma.customerSummary.findMany({
+        where: clientType === 'repeating' ? { totalRequests: { gt: 1 } } : { totalRequests: { lte: 1 } },
+        select: { id: true },
+      });
+      clientTypeCustomerIds = matches.map((m) => m.id);
+    }
+
     const where: Prisma.BookingRequestWhereInput = {
       ...(statuses.length ? { status: { in: statuses } } : {}),
       ...(treatmentId ? { treatmentId } : {}),
       ...(categoryId ? { treatment: { categoryId } } : {}),
-      ...(customerId ? { customerId } : {}),
+      // customerId (exact match) takes precedence if both are somehow passed.
+      ...(customerId ? { customerId } : clientTypeCustomerIds ? { customerId: { in: clientTypeCustomerIds } } : {}),
       ...(channel ? { channel } : {}),
       ...(dateFrom || dateTo
         ? { preferredDate: { ...(dateFrom ? { gte: dateFrom } : {}), ...(dateTo ? { lte: dateTo } : {}) } }
@@ -64,7 +87,10 @@ adminBookingRequestsRouter.get('/', async (req, res, next) => {
         orderBy,
         skip: offset,
         take: limit,
-        include: { customer: true, treatment: { include: { category: true } } },
+        include: {
+          customer: { include: { _count: { select: { bookingRequests: true } } } },
+          treatment: { include: { category: true } },
+        },
       }),
       prisma.bookingRequest.count({ where }),
     ]);
@@ -84,7 +110,10 @@ adminBookingRequestsRouter.get('/:id', async (req, res, next) => {
   try {
     const bookingRequest = await prisma.bookingRequest.findUnique({
       where: { id: req.params.id },
-      include: { customer: true, treatment: { include: { category: true } } },
+      include: {
+        customer: { include: { _count: { select: { bookingRequests: true } } } },
+        treatment: { include: { category: true } },
+      },
     });
     if (!bookingRequest) throw AppError.notFound('Booking request not found.');
 
@@ -123,7 +152,10 @@ adminBookingRequestsRouter.patch('/:id', async (req, res, next) => {
         ...(input.staff_notes !== undefined ? { staffNotes: input.staff_notes } : {}),
         ...(input.cancellation_reason !== undefined ? { cancellationReason: input.cancellation_reason } : {}),
       },
-      include: { customer: true, treatment: { include: { category: true } } },
+      include: {
+        customer: { include: { _count: { select: { bookingRequests: true } } } },
+        treatment: { include: { category: true } },
+      },
     });
 
     ok(res, serializeBookingRequest(bookingRequest));
@@ -140,10 +172,14 @@ adminBookingRequestsRouter.patch('/:id', async (req, res, next) => {
 });
 
 type BookingRequestWithRelations = Prisma.BookingRequestGetPayload<{
-  include: { customer: true; treatment: { include: { category: true } } };
+  include: {
+    customer: { include: { _count: { select: { bookingRequests: true } } } };
+    treatment: { include: { category: true } };
+  };
 }>;
 
 function serializeBookingRequest(b: BookingRequestWithRelations) {
+  const totalRequests = b.customer._count.bookingRequests;
   return {
     id: b.id,
     request_reference: b.requestReference,
@@ -154,6 +190,10 @@ function serializeBookingRequest(b: BookingRequestWithRelations) {
       phone_number: b.customer.phoneNumber,
       whatsapp_number: b.customer.whatsappNumber,
       email: b.customer.email,
+      // Same "repeating = more than one request on file" definition used
+      // by the Clients page and the client_type query filter above.
+      total_requests: totalRequests,
+      client_type: totalRequests > 1 ? 'repeating' : 'new',
     },
     treatment: {
       id: b.treatment.id,

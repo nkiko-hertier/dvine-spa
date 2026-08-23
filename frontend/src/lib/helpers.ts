@@ -54,6 +54,7 @@ import type {
   BookingRequestUpdateInput,
   BookingRequestLookupInput,
   BookingRequestLookupResult,
+  BookingConfirmationPublic,
   Staff,
   StaffListParams,
   StaffInviteInput,
@@ -216,6 +217,30 @@ export function useEasyLookupBookingRequest() {
       );
       return data.data;
     },
+  });
+}
+
+/**
+ * GET /booking-requests/:id/confirmation — public. Powers the
+ * /booking-confirmation/:id page that a completed booking's downloaded
+ * PDF QR code links to. Only resolves for completed bookings — 404s
+ * otherwise, which the page treats as "not available".
+ */
+export function useBookingConfirmation(
+  id: string | undefined,
+  options?: ExtraQueryOptions<BookingConfirmationPublic>
+) {
+  return useQuery({
+    queryKey: ["public", "bookingRequests", "confirmation", id],
+    queryFn: async () => {
+      const { data } = await apiClient.get<ApiSuccess<BookingConfirmationPublic>>(
+        ENDPOINTS.public.bookingRequests.getBookingConfirmation(id as string)
+      );
+      return data.data;
+    },
+    enabled: !!id && (options?.enabled ?? true),
+    retry: false,
+    ...options,
   });
 }
 

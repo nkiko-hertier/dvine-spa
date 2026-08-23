@@ -6,6 +6,8 @@ import { Search, ChevronLeft, ChevronRight, ArrowUpDown, Eye, Filter } from "luc
 import { useAdminCustomers } from "../../lib/helpers";
 import type { CustomerSource } from "../../types";
 
+type ClientFilter = "all" | "new" | "repeating";
+
 const SOURCE_OPTIONS: { value: CustomerSource; label: string }[] = [
   { value: "instagram", label: "Instagram" },
   { value: "facebook", label: "Facebook" },
@@ -44,6 +46,7 @@ export default function Customers(): React.ReactElement {
   const [search, setSearch] = useState<string>("");
   const [source, setSource] = useState<string>("");
   const [hasPending, setHasPending] = useState<boolean>(false);
+  const [clientFilter, setClientFilter] = useState<ClientFilter>("all");
   const [sort, setSort] = useState<string>("-customerSince");
   const itemsPerPage = 15;
 
@@ -53,6 +56,7 @@ export default function Customers(): React.ReactElement {
     search: search || undefined,
     source: (source || undefined) as CustomerSource | undefined,
     has_pending: hasPending || undefined,
+    client_type: clientFilter === "all" ? undefined : clientFilter,
     sort,
   });
 
@@ -66,11 +70,12 @@ export default function Customers(): React.ReactElement {
     setSearch("");
     setSource("");
     setHasPending(false);
+    setClientFilter("all");
     setSort("-customerSince");
     setPage(1);
   };
 
-  const hasActiveFilters = !!search || !!source || hasPending || sort !== "-customerSince";
+  const hasActiveFilters = !!search || !!source || hasPending || clientFilter !== "all" || sort !== "-customerSince";
 
   return (
     <div className="min-h-screen bg-[#F8F6F0] flex font-['Work_Sans',sans-serif] text-[#1C3A27]">
@@ -136,6 +141,19 @@ export default function Customers(): React.ReactElement {
                 <span>Has Pending Requests</span>
               </label>
 
+              <select
+                value={clientFilter}
+                onChange={(e) => {
+                  setClientFilter(e.target.value as ClientFilter);
+                  resetToFirstPage();
+                }}
+                className="p-2.5 bg-[#F8F6F0] border border-stone-300 text-xs text-[#1C3A27] focus:outline-none focus:border-[#1C3A27]"
+              >
+                <option value="all">All Clients</option>
+                <option value="new">New Clients</option>
+                <option value="repeating">Repeating Clients</option>
+              </select>
+
               <div className="flex items-center gap-1.5 lg:ml-auto">
                 <ArrowUpDown className="w-3.5 h-3.5 text-stone-500" />
                 <select
@@ -186,7 +204,11 @@ export default function Customers(): React.ReactElement {
                 <p className="text-center text-red-700 italic py-10 text-xs">Couldn't load clients.</p>
               ) : customers.length === 0 ? (
                 <p className="text-center text-stone-500 italic py-10 text-xs">
-                  No clients found matching your filters.
+                  {clientFilter === "new"
+                    ? "No new clients found matching your filters."
+                    : clientFilter === "repeating"
+                    ? "No repeating clients found matching your filters."
+                    : "No clients found matching your filters."}
                 </p>
               ) : (
                 <table className="w-full text-left text-xs border-collapse">
@@ -194,6 +216,7 @@ export default function Customers(): React.ReactElement {
                     <tr className="border-b border-stone-300 text-stone-500 uppercase tracking-widest text-[10px]">
                       <th className="py-3 px-4 font-semibold">Client Name</th>
                       <th className="py-3 px-4 font-semibold">Phone</th>
+                      <th className="py-3 px-4 font-semibold">Client Type</th>
                       <th className="py-3 px-4 font-semibold">Source</th>
                       <th className="py-3 px-4 font-semibold">Client Since</th>
                       <th className="py-3 px-4 font-semibold">Visits</th>
@@ -207,6 +230,17 @@ export default function Customers(): React.ReactElement {
                       <tr key={c.id} className="hover:bg-[#F8F6F0]/60 transition-colors">
                         <td className="py-4 px-4 font-semibold">{c.full_name}</td>
                         <td className="py-4 px-4 text-stone-700">{c.phone_number}</td>
+                        <td className="py-4 px-4">
+                          <span
+                            className={`inline-block px-2.5 py-1 text-[9px] uppercase tracking-widest font-semibold ${
+                              (c.total_requests ?? 0) > 1
+                                ? "bg-purple-100 text-purple-800"
+                                : "bg-blue-100 text-blue-800"
+                            }`}
+                          >
+                            {(c.total_requests ?? 0) > 1 ? "Repeating" : "New"}
+                          </span>
+                        </td>
                         <td className="py-4 px-4 text-stone-600 capitalize">
                           {c.source ? c.source.replace("_", " ") : "—"}
                         </td>

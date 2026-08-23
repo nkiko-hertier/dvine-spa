@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "./pages/admin/Login";
 import Dashboard from "./pages/admin/Dashboard";
 import NotFound from "./pages/NotFound";
+import BookingConfirmation from "./pages/BookingConfirmation";
 import DashbordServices from "./pages/admin/Services";
 import DashboardBookings from "./pages/admin/Booking";
 import DashboardCategories from "./pages/admin/Categories";
@@ -29,6 +30,7 @@ export default function App() {
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/booking" element={<Booking />} />*/}
                 <Route path="/login" element={<Login />} />
+                <Route path="/booking-confirmation/:id" element={<BookingConfirmation />} />
                 <Route
                     path="/dashboard"
                     element={

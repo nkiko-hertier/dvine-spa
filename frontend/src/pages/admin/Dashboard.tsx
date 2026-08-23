@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import Sidebar from "../../components/Sidebar";
 import DashboardHeader from "../../components/DashboardHeader";
 import BookingActionModal from "../../components/BookingActionModal";
@@ -6,7 +6,6 @@ import { Calendar, Eye, Users, Clock, Download } from "lucide-react";
 import {
   useDashboardStats,
   useAdminBookingRequests,
-  useAdminCustomers,
 } from "../../lib/helpers";
 import { STATUS_LABEL, STATUS_CLASS, formatDateTime } from "../../lib/bookingStatus";
 import { downloadBookingConfirmationPdf } from "../../lib/bookingPdf";
@@ -18,15 +17,16 @@ export default function Dashboard(): React.ReactElement {
   // Real backend stats
   const { data: stats, isLoading: statsLoading, isError: statsError } = useDashboardStats();
 
-  // Recent 5 bookings (newest first)
-  const { data: bookingsData, isLoading: bookingsLoading, isError: bookingsError } =
-    useAdminBookingRequests({ limit: 5, sort: "-created_at" });
-
-  // All customers — used to determine new vs repeating client
-  const { data: customersData, isError: customersError } = useAdminCustomers({ limit: 100, sort: "-customerSince" });
-
   // Client type filter
   const [clientFilter, setClientFilter] = useState<ClientFilter>("all");
+
+  // Recent 5 bookings (newest first), filtered server-side by client type
+  const { data: bookingsData, isLoading: bookingsLoading, isError: bookingsError } =
+    useAdminBookingRequests({
+      limit: 5,
+      sort: "-created_at",
+      client_type: clientFilter === "all" ? undefined : clientFilter,
+    });
 
   // Modal state
   const [selectedBooking, setSelectedBooking] = useState<BookingRequest | null>(null);
@@ -34,35 +34,10 @@ export default function Dashboard(): React.ReactElement {
   const handleOpenModal = (booking: BookingRequest) => setSelectedBooking(booking);
   const handleCloseModal = () => setSelectedBooking(null);
 
-  const recentBookings = bookingsData?.data ?? [];
-
-  // Build a lookup map: customer_id -> total_requests
-  const customerRequestCounts = useMemo(() => {
-    const map = new Map<string, number>();
-    (customersData?.data ?? []).forEach((c) => {
-      map.set(c.id, c.total_requests ?? 0);
-    });
-    return map;
-  }, [customersData]);
-
-  // Determine if a booking's client is new (first request) or repeating.
-  // If customer data failed to load, fall back to "unknown" classification.
-  const isNewClient = (booking: BookingRequest): boolean => {
-    if (customersError) return false; // can't determine — treat as repeating to avoid false "new" labels
-    const count = customerRequestCounts.get(booking.customer.id) ?? 0;
-    return count <= 1;
-  };
-
-  // Apply client type filter
-  const filteredBookings = useMemo(() => {
-    if (clientFilter === "all") return recentBookings;
-    return recentBookings.filter((b) =>
-      clientFilter === "new" ? isNewClient(b) : !isNewClient(b)
-    );
-  }, [recentBookings, clientFilter, customerRequestCounts]);
+  const filteredBookings = bookingsData?.data ?? [];
 
   const handleDownloadPdf = (booking: BookingRequest) => {
-    downloadBookingConfirmationPdf(booking);
+    void downloadBookingConfirmationPdf(booking);
   };
 
   return (
@@ -211,12 +186,12 @@ export default function Dashboard(): React.ReactElement {
                         <td className="py-4 px-4">
                           <span
                             className={`inline-block px-2.5 py-1 text-[9px] uppercase tracking-widest font-semibold ${
-                              isNewClient(booking)
+                              booking.customer.client_type === "new"
                                 ? "bg-blue-100 text-blue-800"
                                 : "bg-purple-100 text-purple-800"
                             }`}
                           >
-                            {isNewClient(booking) ? "New" : "Repeating"}
+                            {booking.customer.client_type === "new" ? "New" : "Repeating"}
                           </span>
                         </td>
                         <td className="py-4 px-4 text-stone-700">{booking.treatment.name}</td>
@@ -230,13 +205,15 @@ export default function Dashboard(): React.ReactElement {
                         </td>
                         <td className="py-4 px-4 text-right">
                           <div className="inline-flex items-center gap-1.5">
-                            <button
-                              onClick={() => handleDownloadPdf(booking)}
-                              className="p-1.5 text-stone-600 hover:text-[#1C3A27] transition-colors inline-flex items-center justify-center bg-[#F8F6F0] border border-stone-300"
-                              title="Download Booking Confirmation (PDF)"
-                            >
-                              <Download className="w-4 h-4" />
-                            </button>
+                            {booking.status === "completed" && (
+                              <button
+                                onClick={() => handleDownloadPdf(booking)}
+                                className="p-1.5 text-stone-600 hover:text-[#1C3A27] transition-colors inline-flex items-center justify-center bg-[#F8F6F0] border border-stone-300"
+                                title="Download Booking Confirmation (PDF)"
+                              >
+                                <Download className="w-4 h-4" />
+                              </button>
+                            )}
                             <button
                               onClick={() => handleOpenModal(booking)}
                               className="p-1.5 text-stone-600 hover:text-[#1C3A27] transition-colors inline-flex items-center justify-center bg-[#F8F6F0] border border-stone-300"

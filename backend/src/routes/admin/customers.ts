@@ -5,7 +5,7 @@ import { ok, okList, parsePagination, buildPaginationMeta } from '../../lib/resp
 import { AppError } from '../../lib/errors.js';
 import { parseOrThrow } from '../../lib/validate.js';
 import { asString, parseSort } from '../../lib/queryParams.js';
-import { customerUpdateSchema, customerSourceSchema } from '../../schemas/index.js';
+import { customerUpdateSchema, customerSourceSchema, clientTypeSchema } from '../../schemas/index.js';
 import { serializeCustomer, serializeCustomerSummary } from '../../lib/serializers.js';
 
 export const adminCustomersRouter = Router();
@@ -20,6 +20,8 @@ adminCustomersRouter.get('/', async (req, res, next) => {
     const sourceRaw = asString(req.query.source);
     const source = sourceRaw ? parseOrThrow(customerSourceSchema, sourceRaw) : undefined;
     const hasPending = asString(req.query.has_pending) === 'true';
+    const clientTypeRaw = asString(req.query.client_type);
+    const clientType = clientTypeRaw ? parseOrThrow(clientTypeSchema, clientTypeRaw) : undefined;
     const sortRaw = asString(req.query.sort) ?? '-customerSince';
     const orderBy = parseSort(sortRaw, SORT_FIELDS, 'customerSince', 'desc');
 
@@ -29,6 +31,11 @@ adminCustomersRouter.get('/', async (req, res, next) => {
         : {}),
       ...(source ? { source } : {}),
       ...(hasPending ? { pendingRequests: { gt: 0 } } : {}),
+      // "Repeating" = more than one booking request on file; mirrors the
+      // isNewClient() check the dashboard/bookings pages used to do purely
+      // client-side (count <= 1 -> new).
+      ...(clientType === 'repeating' ? { totalRequests: { gt: 1 } } : {}),
+      ...(clientType === 'new' ? { totalRequests: { lte: 1 } } : {}),
     };
 
     const [customers, total] = await Promise.all([

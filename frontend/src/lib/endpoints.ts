@@ -27,6 +27,7 @@ export const ENDPOINTS = {
       createBookingRequest: () => `/booking-requests`,
       lookupBookingRequest: () => `/booking-requests/lookup`,
       easyLookupBookingRequest: () => `/booking-requests/easy-lookup`,
+      getBookingConfirmation: (id: string) => `/booking-requests/${id}/confirmation`,
     },
   },
 

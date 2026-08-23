@@ -152,6 +152,45 @@ bookingRequestsRouter.get('/lookup', async (req, res, next) => {
   }
 });
 
+/**
+ * GET /booking-requests/:id/confirmation — public, no auth.
+ *
+ * Backs the QR code printed on the "Download PDF" confirmation for
+ * completed bookings — scanning it opens a lightweight, read-only
+ * confirmation page (frontend route /booking-confirmation/:id) so a
+ * client (or the front desk) can verify the booking online. Only
+ * returns data for completed bookings; anything else 404s so the QR
+ * only ever resolves to something once the visit is actually done.
+ * The id is an unguessable UUID, so this is safe to expose without a
+ * phone-number check the way /lookup requires.
+ */
+bookingRequestsRouter.get('/:id/confirmation', async (req, res, next) => {
+  try {
+    const bookingRequest = await prisma.bookingRequest.findUnique({
+      where: { id: req.params.id },
+      include: { customer: true, treatment: { include: { category: true } } },
+    });
+    if (!bookingRequest || bookingRequest.status !== 'completed') {
+      throw AppError.notFound('No completed booking confirmation found for that reference.');
+    }
+
+    ok(res, {
+      id: bookingRequest.id,
+      request_reference: bookingRequest.requestReference,
+      status: bookingRequest.status,
+      customer_name: bookingRequest.customer.fullName,
+      treatment_name: bookingRequest.treatment.name,
+      category_name: bookingRequest.treatment.category?.name ?? null,
+      duration_minutes: bookingRequest.treatment.durationMinutes,
+      confirmed_date: bookingRequest.confirmedDate,
+      confirmed_time: bookingRequest.confirmedTime,
+      completed_at: bookingRequest.completedAt,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 bookingRequestsRouter.get('/easy-lookup', async (req, res, next) => {
   try {
     const input = parseOrThrow(bookingRequestLookupSchema, {

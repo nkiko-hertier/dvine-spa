@@ -42,6 +42,14 @@ const BOOKING_STATUSES = [
 ] as const;
 export const bookingStatusSchema = z.enum(BOOKING_STATUSES);
 
+/**
+ * "New" vs "repeating" client classification. Matches the definition
+ * already used client-side (and now server-side, see admin/customers.ts
+ * and admin/bookingRequests.ts): a customer is "repeating" once they have
+ * more than one booking request on file (customer_summary.total_requests > 1).
+ */
+export const clientTypeSchema = z.enum(['new', 'repeating']);
+
 export const timeStringSchema = z
   .string()
   .regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Expected 24h time in HH:MM format.');

@@ -1,4 +1,5 @@
 import { jsPDF } from "jspdf";
+import QRCode from "qrcode";
 import type { BookingRequest } from "../types";
 import { STATUS_LABEL, formatDateTime } from "./bookingStatus";
 
@@ -6,8 +7,14 @@ import { STATUS_LABEL, formatDateTime } from "./bookingStatus";
  * Generates and downloads a PDF booking confirmation for a given booking.
  * Includes the booking ID/reference as evidence, client details, service
  * details, scheduled time, and status.
+ *
+ * Only completed bookings get a verification QR code (linking to the
+ * public /booking-confirmation/:id page) — see the Download button, which
+ * is only ever rendered for completed bookings in the first place. This
+ * function still guards on status itself so it degrades gracefully if
+ * ever called for a booking in another state.
  */
-export function downloadBookingConfirmationPdf(booking: BookingRequest): void {
+export async function downloadBookingConfirmationPdf(booking: BookingRequest): Promise<void> {
   const doc = new jsPDF();
 
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -142,8 +149,33 @@ export function downloadBookingConfirmationPdf(booking: BookingRequest): void {
     doc.text(notesLines, margin, y);
   }
 
-  // --- Footer ---
+  // --- Verification QR code (completed bookings only) — links to the
+  // public /booking-confirmation/:id page so the client (or front desk)
+  // can verify this confirmation online.
   const pageHeight = doc.internal.pageSize.getHeight();
+  if (booking.status === "completed") {
+    const confirmationUrl = `${window.location.origin}/booking-confirmation/${booking.id}`;
+    try {
+      const qrDataUrl = await QRCode.toDataURL(confirmationUrl, {
+        margin: 1,
+        width: 200,
+        color: { dark: "#1C3A27", light: "#F8F6F0" },
+      });
+      const qrSize = 28;
+      const qrX = pageWidth - margin - qrSize;
+      const qrY = pageHeight - 30 - qrSize - 6;
+      doc.addImage(qrDataUrl, "PNG", qrX, qrY, qrSize, qrSize);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7);
+      doc.setTextColor(120, 113, 108);
+      doc.text("Scan to verify", qrX, qrY + qrSize + 4, { align: "left" });
+    } catch {
+      // If QR generation fails for any reason, the PDF still downloads —
+      // just without the verification code.
+    }
+  }
+
+  // --- Footer ---
   doc.setDrawColor(214, 211, 209);
   doc.setLineWidth(0.5);
   doc.line(margin, pageHeight - 30, pageWidth - margin, pageHeight - 30);
