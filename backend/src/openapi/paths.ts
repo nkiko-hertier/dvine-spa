@@ -264,10 +264,10 @@ registry.registerPath({
 });
 registry.registerPath({
   method: 'post', path: '/admin/staff/invite', tags: ['Admin / Staff'], security: bearerAuth,
-  summary: 'Admin role required. Sends a Clerk invitation; the staff row is created by the user.created webhook once accepted.',
+  summary: 'Admin role required. Sends a Clerk invitation; the staff row is created by the user.created webhook once accepted. If a pending invitation for this email already exists it is revoked and re-sent (reinvited=true).',
   request: { body: body(staffInviteSchema) },
   responses: {
-    202: { description: 'Invitation sent', content: json(successEnvelope(z.object({ invitation_status: z.literal('pending'), email: z.string().email() }))) },
+    202: { description: 'Invitation sent', content: json(successEnvelope(z.object({ invitation_status: z.literal('pending'), email: z.string().email(), reinvited: z.boolean() }))) },
     ...commonErrorResponses,
   },
 });
@@ -282,4 +282,13 @@ registry.registerPath({
   summary: 'Admin role required. Soft delete + revokes active Clerk sessions.',
   request: { params: z.object({ id: z.string().uuid() }) },
   responses: { 200: okJson('Deactivated', staffSchema), ...commonErrorResponses },
+});
+registry.registerPath({
+  method: 'delete', path: '/admin/staff/{id}/permanent', tags: ['Admin / Staff'], security: bearerAuth,
+  summary: 'Admin role required. HARD delete — removes the linked Clerk user and the local staff row for good. Irreversible; cannot target your own account.',
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: {
+    200: okJson('Permanently deleted', z.object({ id: z.string().uuid(), deleted: z.literal(true) })),
+    ...commonErrorResponses,
+  },
 });

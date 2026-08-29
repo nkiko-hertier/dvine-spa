@@ -388,6 +388,8 @@ export interface StaffInviteInput {
 export interface StaffInviteResult {
   invitation_status: "pending";
   email: string;
+  /** true when a prior pending invitation was revoked and re-sent. */
+  reinvited: boolean;
 }
 
 export interface StaffUpdateInput {

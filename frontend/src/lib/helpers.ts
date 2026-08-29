@@ -752,6 +752,23 @@ export function useDeleteStaff() {
   });
 }
 
+/** DELETE /admin/staff/:id/permanent — HARD delete: removes the Clerk user
+ * and the local staff row for good. Irreversible. Returns { id, deleted }. */
+export function useHardDeleteStaff() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data } = await apiClient.delete<ApiSuccess<{ id: string; deleted: boolean }>>(
+        ENDPOINTS.admin.staff.hardDeleteStaffById(id)
+      );
+      return data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "staff", "list"] });
+    },
+  });
+}
+
 // =============================================================================
 // ADMIN — audit logs (read-only; rows are written by a DB trigger, never
 // by this API, so there are no mutations here)

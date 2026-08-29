@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import Sidebar from "../../components/Sidebar";
 import DashboardHeader from "../../components/DashboardHeader";
-import { UserPlus, X, ShieldCheck, ShieldOff, Mail } from "lucide-react";
+import { UserPlus, X, ShieldCheck, ShieldOff, Mail, Trash2 } from "lucide-react";
 import {
   useAdminStaff,
   useInviteStaff,
   useUpdateStaff,
+  useHardDeleteStaff,
   useCurrentStaff,
 } from "../../lib/helpers";
 import type { Staff, UserRole } from "../../types";
@@ -21,7 +22,9 @@ function formatDate(value: string | null): string {
  * so each row's useUpdateStaff mutation (scoped by id) stays isolated. */
 function StaffRow({ staff, isSelf }: { staff: Staff; isSelf: boolean }): React.ReactElement {
   const updateStaff = useUpdateStaff(staff.id);
+  const hardDeleteStaff = useHardDeleteStaff();
   const [confirmingDeactivate, setConfirmingDeactivate] = useState<boolean>(false);
+  const [confirmingDelete, setConfirmingDelete] = useState<boolean>(false);
 
   const handleRoleChange = (role: UserRole) => {
     updateStaff.mutate({ role });
@@ -34,6 +37,14 @@ function StaffRow({ staff, isSelf }: { staff: Staff; isSelf: boolean }): React.R
     }
     updateStaff.mutate({ is_active: !staff.is_active });
     setConfirmingDeactivate(false);
+  };
+
+  const handleHardDelete = () => {
+    if (!confirmingDelete) {
+      setConfirmingDelete(true);
+      return;
+    }
+    hardDeleteStaff.mutate(staff.id, { onSettled: () => setConfirmingDelete(false) });
   };
 
   return (
@@ -68,6 +79,26 @@ function StaffRow({ staff, isSelf }: { staff: Staff; isSelf: boolean }): React.R
       <td className="py-4 px-4 text-right">
         {isSelf ? (
           <span className="text-[10px] uppercase tracking-widest text-stone-400">You</span>
+        ) : confirmingDelete ? (
+          <div className="inline-flex items-center gap-2">
+            <span className="text-[10px] uppercase tracking-widest font-semibold text-red-700">
+              Delete forever?
+            </span>
+            <button
+              onClick={handleHardDelete}
+              disabled={hardDeleteStaff.isPending}
+              className="text-[10px] uppercase tracking-widest font-semibold text-red-700 hover:underline disabled:opacity-50"
+            >
+              {hardDeleteStaff.isPending ? "Deleting…" : "Confirm"}
+            </button>
+            <button
+              onClick={() => setConfirmingDelete(false)}
+              disabled={hardDeleteStaff.isPending}
+              className="text-[10px] uppercase tracking-widest font-semibold text-stone-500 hover:underline disabled:opacity-50"
+            >
+              Cancel
+            </button>
+          </div>
         ) : confirmingDeactivate ? (
           <div className="inline-flex items-center gap-2">
             <button
@@ -84,14 +115,24 @@ function StaffRow({ staff, isSelf }: { staff: Staff; isSelf: boolean }): React.R
             </button>
           </div>
         ) : (
-          <button
-            onClick={handleToggleActive}
-            disabled={updateStaff.isPending}
-            className="p-1.5 text-stone-600 hover:text-[#1C3A27] transition-colors inline-flex items-center justify-center bg-[#F8F6F0] border border-stone-300 disabled:opacity-50"
-            title={staff.is_active ? "Deactivate account" : "Reactivate account"}
-          >
-            {staff.is_active ? <ShieldOff className="w-4 h-4" /> : <ShieldCheck className="w-4 h-4" />}
-          </button>
+          <div className="inline-flex items-center gap-2">
+            <button
+              onClick={handleToggleActive}
+              disabled={updateStaff.isPending}
+              className="p-1.5 text-stone-600 hover:text-[#1C3A27] transition-colors inline-flex items-center justify-center bg-[#F8F6F0] border border-stone-300 disabled:opacity-50"
+              title={staff.is_active ? "Deactivate account" : "Reactivate account"}
+            >
+              {staff.is_active ? <ShieldOff className="w-4 h-4" /> : <ShieldCheck className="w-4 h-4" />}
+            </button>
+            <button
+              onClick={handleHardDelete}
+              disabled={hardDeleteStaff.isPending}
+              className="p-1.5 text-stone-600 hover:text-red-700 transition-colors inline-flex items-center justify-center bg-[#F8F6F0] border border-stone-300 disabled:opacity-50"
+              title="Permanently delete account"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
         )}
       </td>
     </tr>
@@ -133,7 +174,11 @@ export default function UserManagement(): React.ReactElement {
         full_name: inviteName,
         role: inviteRole,
       });
-      setInviteSuccess(`Invitation sent to ${result.email}.`);
+      setInviteSuccess(
+        result.reinvited
+          ? `A pending invitation already existed — it was revoked and a fresh one sent to ${result.email}.`
+          : `Invitation sent to ${result.email}.`
+      );
       setInviteEmail("");
       setInviteName("");
       setInviteRole("staff");

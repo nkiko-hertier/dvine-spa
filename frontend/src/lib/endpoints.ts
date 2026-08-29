@@ -68,6 +68,7 @@ export const ENDPOINTS = {
       inviteStaff: () => `/admin/staff/invite`,
       updateStaffById: (id: string) => `/admin/staff/${id}`,
       deleteStaffById: (id: string) => `/admin/staff/${id}`,
+      hardDeleteStaffById: (id: string) => `/admin/staff/${id}/permanent`,
     },
     auditLogs: {
       getAllAuditLogs: () => `/admin/audit-logs`,
