@@ -5,6 +5,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 // import Contact from "./pages/Contact";
 // import Booking from "./pages/Booking";
 import Login from "./pages/admin/Login";
+import AcceptInvitation from "./pages/admin/AcceptInvitation";
 import Dashboard from "./pages/admin/Dashboard";
 import NotFound from "./pages/NotFound";
 import BookingConfirmation from "./pages/BookingConfirmation";
@@ -30,6 +31,7 @@ export default function App() {
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/booking" element={<Booking />} />*/}
                 <Route path="/login" element={<Login />} />
+                <Route path="/accept-invitation" element={<AcceptInvitation />} />
                 <Route path="/booking-confirmation/:id" element={<BookingConfirmation />} />
                 <Route
                     path="/dashboard"

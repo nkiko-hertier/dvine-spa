@@ -9,6 +9,7 @@ import { parseOrThrow } from '../../lib/validate.js';
 import { asString } from '../../lib/queryParams.js';
 import { staffInviteSchema, staffUpdateSchema } from '../../schemas/index.js';
 import { logger } from '../../lib/logger.js';
+import { env } from '../../config/env.js';
 
 const roleFilterSchema = z.enum(['admin', 'staff']);
 
@@ -78,7 +79,10 @@ adminStaffRouter.post('/invite', async (req, res, next) => {
     await clerkClient.invitations.createInvitation({
       emailAddress: input.email,
       publicMetadata: { role: input.role, pending_full_name: input.full_name },
-      redirectUrl: `${process.env.DASHBOARD_URL}`
+      // Land the invitee on our own page that renders Clerk's <SignUp>, which
+      // consumes the __clerk_ticket query param Clerk appends here. Without a
+      // valid app URL Clerk falls back to its hosted /default-redirect page.
+      redirectUrl: `${env.DASHBOARD_URL}/accept-invitation`,
     });
 
     res.status(202).json({ success: true, data: { invitation_status: 'pending', email: input.email } });

@@ -1,0 +1,128 @@
+import React, { useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { SignUp, useAuth } from "@clerk/clerk-react";
+import { ShieldCheck, ArrowLeft } from "lucide-react";
+import AOS from "aos";
+import "aos/dist/aos.css";
+import { CLERK_PUBLISHABLE_KEY } from "../../lib/clerk";
+
+/**
+ * Landing page for staff invitation links. Clerk's invitation email points here
+ * (backend sets redirectUrl = `${DASHBOARD_URL}/accept-invitation`) and appends
+ * a `__clerk_ticket` query param. Clerk's <SignUp> component reads that ticket
+ * automatically and walks the invitee through setting a password / finishing
+ * their account, then redirects to /dashboard.
+ */
+function ClerkSignUpPanel(): React.ReactElement {
+  const { isLoaded, isSignedIn } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Already signed in (e.g. re-visiting the link): go straight to the dashboard.
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      const from = (location.state as { from?: Location })?.from?.pathname ?? "/dashboard";
+      navigate(from, { replace: true });
+    }
+  }, [isLoaded, isSignedIn, navigate, location.state]);
+
+  return (
+    <div className="flex justify-center">
+      <SignUp
+        routing="hash"
+        signInUrl="/login"
+        fallbackRedirectUrl="/dashboard"
+        forceRedirectUrl="/dashboard"
+        appearance={{
+          elements: {
+            rootBox: "w-full",
+            card: "shadow-none border-none bg-transparent p-0 w-full",
+            header: "hidden",
+            footer: "hidden",
+            socialButtonsBlockButton:
+              "border border-stone-300 text-[#1C3A27] hover:bg-stone-200/50 text-xs",
+            dividerLine: "bg-stone-300",
+            dividerText: "text-stone-500 text-[10px] uppercase tracking-wider",
+            formFieldLabel: "text-[10px] uppercase tracking-wider font-semibold text-stone-600",
+            formFieldInput:
+              "bg-[#F8F6F0] border border-stone-300 focus:border-[#1C3A27] text-[#1C3A27] text-xs",
+            formButtonPrimary:
+              "bg-[#1C3A27] hover:bg-[#0A2619] text-[#F8F6F0] text-[10px] uppercase tracking-[0.2em] font-semibold shadow-sm",
+            footerActionLink: "text-[#1C3A27] hover:underline",
+            identityPreviewText: "text-xs text-[#1C3A27]",
+            formResendCodeLink: "text-[#1C3A27]",
+          },
+          variables: {
+            colorPrimary: "#1C3A27",
+          },
+        }}
+      />
+    </div>
+  );
+}
+
+function NoClerkNotice(): React.ReactElement {
+  return (
+    <div className="text-center space-y-4 py-4">
+      <p className="text-xs text-stone-600 leading-relaxed">
+        Authentication is disabled because no Clerk publishable key is configured.
+      </p>
+      <p className="text-[10px] text-stone-500 leading-relaxed">
+        Add a valid <code className="text-[#1C3A27]">VITE_CLERK_PUBLISHABLE_KEY</code> to{" "}
+        <code className="text-[#1C3A27]">.env</code> and restart the dev server
+        to enable invitation sign-up.
+      </p>
+      <Link
+        to="/"
+        className="inline-block bg-[#1C3A27] text-[#F8F6F0] px-6 py-2.5 text-[10px] uppercase tracking-[0.2em] font-semibold"
+      >
+        Return to Homepage
+      </Link>
+    </div>
+  );
+}
+
+export default function AcceptInvitation(): React.ReactElement {
+  useEffect(() => {
+    AOS.init({
+      duration: 800,
+      once: true,
+      easing: "ease-out-cubic",
+    });
+  }, []);
+
+  return (
+    <main className="bg-[#F8F6F0] text-[#1C3A27] font-['Work_Sans',sans-serif] selection:bg-[#1C3A27] selection:text-[#F8F6F0] min-h-[85vh] flex items-center justify-center px-6 py-16">
+      <div className="max-w-md w-full bg-[#EFECE6] border border-stone-300/80 p-8 sm:p-10 shadow-sm" data-aos="fade-up">
+
+        {/* HEADER */}
+        <div className="text-center space-y-2 mb-8 border-b border-stone-300/60 pb-6">
+          <div className="w-12 h-12 bg-[#1C3A27] text-[#F8F6F0] rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm">
+            <ShieldCheck className="w-6 h-6" />
+          </div>
+          <span className="text-[10px] uppercase tracking-[0.35em] font-semibold text-stone-500 block">
+            Staff & Management Portal
+          </span>
+          <h1 className="font-serif text-3xl sm:text-4xl text-[#1C3A27]">
+            Accept Your Invitation
+          </h1>
+          <p className="text-xs text-stone-600 font-light max-w-xs mx-auto">
+            Finish setting up your D'vine Spa account to access internal scheduling and bookings.
+          </p>
+        </div>
+
+        {/* CLERK SIGN UP or NO-KEY NOTICE */}
+        {CLERK_PUBLISHABLE_KEY ? <ClerkSignUpPanel /> : <NoClerkNotice />}
+
+        {/* FOOTER LINK BACK */}
+        <div className="mt-8 pt-6 border-t border-stone-300/60 text-center text-stone-500 text-[11px]">
+          <Link to="/login" className="inline-flex items-center space-x-1.5 text-[#1C3A27] font-medium hover:underline">
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Already have an account? Sign in</span>
+          </Link>
+        </div>
+
+      </div>
+    </main>
+  );
+}
