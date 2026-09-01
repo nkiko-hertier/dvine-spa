@@ -4,6 +4,18 @@ import { defineConfig } from 'vite'
 import base44 from '@base44/vite-plugin'
 import path from 'path'
 
+// All `/api/*` calls are proxied straight to the D'Vine Spa API. The `/api`
+// prefix is stripped, so `/api/categories` -> `http://5.189.175.8:4000/categories`.
+// Same rule lives in vercel.json for production.
+const apiProxy = {
+  '/api': {
+    target: 'http://5.189.175.8:4000',
+    changeOrigin: true,
+    secure: false,
+    rewrite: (p) => p.replace(/^\/api/, ''),
+  },
+};
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -24,8 +36,12 @@ export default defineConfig({
     },
   },
   server: {
+    proxy: apiProxy,
     watch: {
       ignored: ['**/medias/**', '**/*.mp4', '**/*.tar.gz', '**/imgs/**'],
     },
+  },
+  preview: {
+    proxy: apiProxy,
   },
 });

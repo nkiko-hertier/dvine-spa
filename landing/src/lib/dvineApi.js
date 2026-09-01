@@ -1,6 +1,3 @@
-import db from '@/api/base44Client';
-
-
 // Booking status -> human label (no em dashes, per house style)
 export const STATUS_LABELS = {
   new_request: 'Request received',
@@ -63,34 +60,81 @@ export class ApiError extends Error {
   }
 }
 
-// Centralized single call point for the spa API proxy. Components never use
-// fetch directly - this is the only place that talks to the backend function.
-async function call(payload) {
+// Every request goes to `/api/*`, which is proxied straight to the D'Vine Spa
+// API (http://5.189.175.8:4000). Dev: vite.config.js server/preview proxy.
+// Prod: vercel.json rewrite. Components never call fetch directly - this is the
+// only place that talks to the backend.
+const API_PREFIX = '/api';
+const enc = encodeURIComponent;
+
+async function request(path, { method = 'GET', query, body } = {}) {
+  let url = API_PREFIX + path;
+  if (query) {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(query)) {
+      if (v !== undefined && v !== null && v !== '') qs.set(k, String(v));
+    }
+    const s = qs.toString();
+    if (s) url += `?${s}`;
+  }
+
   let res;
   try {
-    res = await db.functions.invoke('dvineApi', payload);
+    res = await fetch(url, {
+      method,
+      headers: body ? { 'Content-Type': 'application/json' } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    });
   } catch {
     throw new ApiError('Unable to reach the spa service. Please try again.', { code: 'NETWORK', status: 0 });
   }
-  const body = res && res.data ? res.data : {};
-  if (body.success === true) return body.data;
-  const err = body.error || {};
+
+  let payload = {};
+  try {
+    payload = await res.json();
+  } catch {
+    payload = {};
+  }
+
+  if (res.ok && payload && payload.success === true) return payload.data;
+
+  const err = (payload && payload.error) || {};
   if (import.meta.env && import.meta.env.DEV) {
-    console.debug('[dvineApi] error', payload.op, err);
+    console.debug('[dvineApi] error', method, path, res.status, err);
   }
   throw new ApiError(err.message || 'Something went wrong. Please try again.', {
     code: err.code || 'INTERNAL_ERROR',
-    status: res && res.status ? res.status : 500,
+    status: res.status || 500,
     details: err.details || null,
   });
 }
 
+// Trim/shape the booking form payload to what the API expects; the server does
+// the real validation and returns field-level `details` on failure.
+function shapeBooking(d = {}) {
+  const out = {
+    full_name: (d.full_name || '').trim(),
+    phone_number: (d.phone_number || '').trim(),
+    treatment_id: d.treatment_id,
+    preferred_date: d.preferred_date,
+    preferred_time: d.preferred_time,
+    channel: d.channel || 'website',
+  };
+  if (d.whatsapp_number && d.whatsapp_number.trim()) out.whatsapp_number = d.whatsapp_number.trim();
+  if (d.email && d.email.trim()) out.email = d.email.trim();
+  if (d.source) out.source = d.source;
+  if (d.notes) out.notes = String(d.notes).slice(0, 2000);
+  return out;
+}
+
 export const dvineApi = {
-  getCategories: () => call({ op: 'categories' }),
-  getCategory: (id) => call({ op: 'category', id }),
-  getCategoryTreatments: (id) => call({ op: 'categoryTreatments', id }),
-  getTreatments: (params = {}) => call({ op: 'treatments', ...params }),
-  getTreatment: (id) => call({ op: 'treatment', id }),
-  createBookingRequest: (data) => call({ op: 'createBooking', data }),
-  lookupBookingRequest: (reference, phone_number) => call({ op: 'lookup', reference, phone_number }),
+  getCategories: () => request('/categories'),
+  getCategory: (id) => request(`/categories/${enc(id)}`),
+  getCategoryTreatments: (id) => request(`/categories/${enc(id)}/treatments`),
+  getTreatments: ({ categoryId, search, page, limit } = {}) =>
+    request('/treatments', { query: { category_id: categoryId, search, page, limit } }),
+  getTreatment: (id) => request(`/treatments/${enc(id)}`),
+  createBookingRequest: (data) => request('/booking-requests', { method: 'POST', body: shapeBooking(data) }),
+  lookupBookingRequest: (reference, phone_number) =>
+    request('/booking-requests/lookup', { query: { reference, phone_number } }),
 };
