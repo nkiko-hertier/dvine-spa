@@ -11,7 +11,7 @@ working unchanged.
 2. **Root Directory**: `backend`.
 3. **Framework Preset**: Other (the `vercel.json` sets `framework: null`).
 4. Build / install commands come from `vercel.json` — leave the UI fields blank:
-   - install: `pnpm install --frozen-lockfile --config.dangerously-allow-all-builds=true`
+   - install: `pnpm install --frozen-lockfile` (pnpm version comes from `packageManager` in package.json; dependency build scripts are allowlisted in `pnpm-workspace.yaml`)
    - build: `pnpm run vercel-build` (`prisma generate && tsc`)
 5. **Node.js Version**: 22.x (also pinned via `package.json` `engines`).
 
