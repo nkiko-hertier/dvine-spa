@@ -21,21 +21,13 @@
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@prisma/client",
-      "@prisma/engines",
-      "prisma",
-      "esbuild",
-      "@scarf/scarf"
-    ]
-  },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "engines": {
     "node": "22.x"
   },
+  "packageManager": "pnpm@11.22.0",
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^9.1.0",
     "@clerk/express": "^2.1.54",
