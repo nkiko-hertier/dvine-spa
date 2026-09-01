@@ -1,6 +1,4 @@
-onlyBuiltDependencies:
-  - '@prisma/client'
-  - '@prisma/engines'
-  - '@scarf/scarf'
-  - esbuild
-  - prisma
+# Intentionally empty. Dependency build scripts are enabled at install time
+# via: pnpm install --config.dangerously-allow-all-builds=true
+# (see vercel.json / Dockerfile). An onlyBuiltDependencies allowlist here is
+# ignored by pnpm 11 under --frozen-lockfile, so it is not used.
