@@ -50,6 +50,16 @@ export const bookingStatusSchema = z.enum(BOOKING_STATUSES);
  */
 export const clientTypeSchema = z.enum(['new', 'repeating']);
 
+/**
+ * Booking origin — where a booking entered the system.
+ *  - `from_us`         → no acquisition source on the customer: treated as
+ *                        entered by staff straight into the dashboard.
+ *  - `from_pixelspring` → the customer has a `source`: the booking came through
+ *                        the public booking site (the flow PixelSpring built).
+ * Derived, not stored — see serializeBookingRequest / the `origin` list filter.
+ */
+export const bookingOriginSchema = z.enum(['from_us', 'from_pixelspring']);
+
 export const timeStringSchema = z
   .string()
   .regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Expected 24h time in HH:MM format.');

@@ -282,10 +282,15 @@ export interface BookingRequest {
   confirmed_date: string | null;
   confirmed_time: string | null;
   channel: CustomerSource;
+  /** Derived: "from_us" = customer has no source (staff-entered in the
+   * dashboard); "from_pixelspring" = has a source (public booking site). */
+  origin: BookingOrigin;
   staff_notes: string | null;
   cancellation_reason: string | null;
   created_at: string;
 }
+
+export type BookingOrigin = "from_us" | "from_pixelspring";
 
 /** GET /admin/booking-requests/:id adds the last 10 audit_logs rows. */
 export interface BookingRequestDetail extends BookingRequest {
@@ -518,6 +523,8 @@ export interface BookingRequestListParams extends PaginationParams {
   channel?: CustomerSource;
   /** "repeating" = more than one booking request on file for that customer. */
   client_type?: "new" | "repeating";
+  /** "from_us" = customer has no source (dashboard-entered); "from_pixelspring" = has a source. */
+  origin?: BookingOrigin;
   /** ISO date, e.g. "2026-09-01" — filters on preferred_date. */
   date_from?: string;
   date_to?: string;

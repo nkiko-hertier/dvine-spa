@@ -22,6 +22,16 @@ import { downloadBookingConfirmationPdf } from "../../lib/bookingPdf";
 import type { BookingRequest } from "../../types";
 
 type ClientFilter = "all" | "new" | "repeating";
+type OriginFilter = "all" | "from_us" | "from_pixelspring";
+
+const ORIGIN_LABEL: Record<"from_us" | "from_pixelspring", string> = {
+  from_us: "From us",
+  from_pixelspring: "From PixelSpring",
+};
+const ORIGIN_CLASS: Record<"from_us" | "from_pixelspring", string> = {
+  from_us: "bg-amber-100 text-amber-800",
+  from_pixelspring: "bg-teal-100 text-teal-800",
+};
 
 export default function DashboardBookings(): React.ReactElement {
   const queryClient = useQueryClient();
@@ -30,6 +40,7 @@ export default function DashboardBookings(): React.ReactElement {
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [clientFilter, setClientFilter] = useState<ClientFilter>("all");
+  const [originFilter, setOriginFilter] = useState<OriginFilter>("all");
   const itemsPerPage = 10;
 
   const { data: bookingsData, isLoading, isError } = useAdminBookingRequests({
@@ -40,6 +51,7 @@ export default function DashboardBookings(): React.ReactElement {
     // param) so pagination totals stay correct instead of re-filtering
     // whatever page happened to already be loaded.
     client_type: clientFilter === "all" ? undefined : clientFilter,
+    origin: originFilter === "all" ? undefined : originFilter,
     sort: "-created_at",
   });
 
@@ -166,6 +178,19 @@ export default function DashboardBookings(): React.ReactElement {
                 <option value="repeating">Repeating Clients</option>
               </select>
 
+              <select
+                value={originFilter}
+                onChange={(e) => {
+                  setOriginFilter(e.target.value as OriginFilter);
+                  setPage(1);
+                }}
+                className="p-2.5 bg-[#F8F6F0] border border-stone-300 text-xs text-[#1C3A27] focus:outline-none focus:border-[#1C3A27]"
+              >
+                <option value="all">All Origins</option>
+                <option value="from_us">From us</option>
+                <option value="from_pixelspring">From PixelSpring</option>
+              </select>
+
               <button
                 onClick={() => setIsNewModalOpen(true)}
                 className="inline-flex items-center justify-center space-x-2 bg-[#1C3A27] text-[#F8F6F0] px-5 py-2.5 text-[10px] uppercase tracking-[0.2em] font-semibold hover:bg-[#0A2619] transition-colors shadow-sm"
@@ -207,6 +232,7 @@ export default function DashboardBookings(): React.ReactElement {
                       <th className="py-3 px-4 font-semibold">Booking ID</th>
                       <th className="py-3 px-4 font-semibold">Client Name</th>
                       <th className="py-3 px-4 font-semibold">Client Type</th>
+                      <th className="py-3 px-4 font-semibold">Origin</th>
                       <th className="py-3 px-4 font-semibold">Service</th>
                       <th className="py-3 px-4 font-semibold">Date & Time</th>
                       <th className="py-3 px-4 font-semibold">Status</th>
@@ -229,6 +255,13 @@ export default function DashboardBookings(): React.ReactElement {
                             }`}
                           >
                             {booking.customer.client_type === "new" ? "New" : "Repeating"}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span
+                            className={`inline-block px-2.5 py-1 text-[9px] uppercase tracking-widest font-semibold ${ORIGIN_CLASS[booking.origin]}`}
+                          >
+                            {ORIGIN_LABEL[booking.origin]}
                           </span>
                         </td>
                         <td className="py-4 px-4 text-stone-700">{booking.treatment.name}</td>

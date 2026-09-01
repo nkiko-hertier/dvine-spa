@@ -187,6 +187,10 @@ registry.registerPath({
       category_id: z.string().uuid().optional(),
       customer_id: z.string().uuid().optional(),
       channel: z.string().optional(),
+      client_type: z.enum(['new', 'repeating']).optional(),
+      origin: z.enum(['from_us', 'from_pixelspring']).optional().openapi({
+        description: '"from_us" = customer has no source (dashboard-entered); "from_pixelspring" = has a source (public booking site).',
+      }),
       date_from: z.string().optional(),
       date_to: z.string().optional(),
       created_from: z.string().optional(),

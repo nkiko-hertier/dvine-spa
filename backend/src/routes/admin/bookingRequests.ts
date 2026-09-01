@@ -11,6 +11,7 @@ import {
   customerSourceSchema,
   bookingStatusSchema,
   clientTypeSchema,
+  bookingOriginSchema,
 } from '../../schemas/index.js';
 import { assertValidTransition } from '../../lib/bookingStatusMachine.js';
 import { timeStringToDate } from '../../lib/time.js';
@@ -34,6 +35,8 @@ adminBookingRequestsRouter.get('/', async (req, res, next) => {
     const channel = channelRaw ? parseOrThrow(customerSourceSchema, channelRaw) : undefined;
     const clientTypeRaw = asString(req.query.client_type);
     const clientType = clientTypeRaw ? parseOrThrow(clientTypeSchema, clientTypeRaw) : undefined;
+    const originRaw = asString(req.query.origin);
+    const origin = originRaw ? parseOrThrow(bookingOriginSchema, originRaw) : undefined;
     const dateFrom = parseDate(req.query.date_from);
     const dateTo = parseDate(req.query.date_to);
     const createdFrom = parseDate(req.query.created_from);
@@ -64,6 +67,12 @@ adminBookingRequestsRouter.get('/', async (req, res, next) => {
       // customerId (exact match) takes precedence if both are somehow passed.
       ...(customerId ? { customerId } : clientTypeCustomerIds ? { customerId: { in: clientTypeCustomerIds } } : {}),
       ...(channel ? { channel } : {}),
+      // Origin: "from us" = the customer has no acquisition source (staff
+      // keyed it into the dashboard); "from PixelSpring" = a source is set,
+      // so it came through the public booking site.
+      ...(origin
+        ? { customer: { source: origin === 'from_us' ? null : { not: null } } }
+        : {}),
       ...(dateFrom || dateTo
         ? { preferredDate: { ...(dateFrom ? { gte: dateFrom } : {}), ...(dateTo ? { lte: dateTo } : {}) } }
         : {}),
@@ -207,6 +216,8 @@ function serializeBookingRequest(b: BookingRequestWithRelations) {
     confirmed_date: b.confirmedDate,
     confirmed_time: b.confirmedTime,
     channel: b.channel,
+    // Derived origin — see the `origin` list filter above.
+    origin: b.customer.source ? ('from_pixelspring' as const) : ('from_us' as const),
     staff_notes: b.staffNotes,
     cancellation_reason: b.cancellationReason,
     created_at: b.createdAt,

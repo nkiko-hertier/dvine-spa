@@ -100,6 +100,10 @@ export const bookingRequestSchema = registry.register(
     confirmed_date: z.string().nullable(),
     confirmed_time: z.string().nullable(),
     channel: customerSourceSchema,
+    origin: z.enum(['from_us', 'from_pixelspring']).openapi({
+      description:
+        'Derived: "from_us" when the customer has no acquisition source (staff-entered in the dashboard); "from_pixelspring" when a source is set (came through the public booking site).',
+    }),
     staff_notes: z.string().nullable(),
     cancellation_reason: z.string().nullable(),
     created_at: z.string().datetime(),
