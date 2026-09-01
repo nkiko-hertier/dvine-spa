@@ -47,12 +47,15 @@ export function createApp() {
     }),
   );
 
+  // Liveness check is mounted BEFORE clerkMiddleware so it keeps answering
+  // even if Clerk env vars are missing/misconfigured (clerkMiddleware throws
+  // per-request without a publishable key). Uptime monitors hit /health.
+  app.use(healthRouter);
+
   // Attaches Clerk auth state to the request without requiring it — actual
   // enforcement happens in requireAuth (src/middleware/auth.ts), used by
   // adminRouter below. Public routes never see this middleware block them.
   app.use(clerkMiddleware());
-
-  app.use(healthRouter);
 
   // Swagger UI at /docs, generated from the same Zod schemas the routes
   // validate against (see docs/API_DOCUMENTATION.md's top-of-file note).

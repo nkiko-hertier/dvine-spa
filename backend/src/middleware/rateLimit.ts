@@ -33,6 +33,10 @@ export const adminLimiter = rateLimit({
   limit: 300,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => req.staff?.id ?? req.ip ?? 'unknown',
+  // Key on the authenticated staff id; fall back to IP for the brief window
+  // before requireAuth runs. The IP must go through ipKeyGenerator so IPv6
+  // clients are bucketed by /64 subnet — express-rate-limit v8 throws at
+  // startup (ERR_ERL_KEY_GEN_IPV6) if a custom keyGenerator uses req.ip raw.
+  keyGenerator: (req) => req.staff?.id ?? ipKeyGenerator(req.ip ?? 'unknown'),
   handler: rateLimitedResponse,
 });

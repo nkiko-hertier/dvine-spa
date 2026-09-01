@@ -17,7 +17,7 @@ import { assertValidTransition } from '../../lib/bookingStatusMachine.js';
 import { timeStringToDate } from '../../lib/time.js';
 import { serializeAuditLog } from '../../lib/serializers.js';
 import { notifyCustomerStatusChange } from '../../lib/emailNotifications.js';
-import { logger } from '../../lib/logger.js';
+import { deferAfterResponse } from '../../lib/deferredWork.js';
 
 export const adminBookingRequestsRouter = Router();
 
@@ -169,10 +169,11 @@ adminBookingRequestsRouter.patch('/:id', async (req, res, next) => {
 
     ok(res, serializeBookingRequest(bookingRequest));
 
-    // Fire-and-forget status-change email after the response is already sent.
+    // Status-change email after the response is already sent (waitUntil on Vercel).
     if (input.status) {
-      void notifyCustomerStatusChange(bookingRequest, input.status).catch((err) =>
-        logger.error({ err }, 'notifyCustomerStatusChange threw unexpectedly'),
+      deferAfterResponse(
+        notifyCustomerStatusChange(bookingRequest, input.status),
+        'notifyCustomerStatusChange',
       );
     }
   } catch (err) {

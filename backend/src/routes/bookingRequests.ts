@@ -8,7 +8,7 @@ import { getIdempotentResponse, storeIdempotentResponse } from '../lib/idempoten
 import { bookingCreateLimiter } from '../middleware/rateLimit.js';
 import { timeStringToDate } from '../lib/time.js';
 import { notifyCustomerBookingReceived, notifyStaffNewBooking } from '../lib/emailNotifications.js';
-import { logger } from '../lib/logger.js';
+import { deferAfterResponse } from '../lib/deferredWork.js';
 
 export const bookingRequestsRouter = Router();
 
@@ -100,13 +100,11 @@ bookingRequestsRouter.post('/', bookingCreateLimiter, async (req, res, next) => 
     if (idempotencyKey) storeIdempotentResponse(idempotencyKey, req.body, 201, responseBody);
     res.status(201).json(responseBody);
 
-    // Fire-and-forget email notifications after the response is sent.
-    void notifyCustomerBookingReceived(bookingRequest).catch((err) =>
-      logger.error({ err }, 'notifyCustomerBookingReceived threw unexpectedly'),
-    );
-    void notifyStaffNewBooking(bookingRequest).catch((err) =>
-      logger.error({ err }, 'notifyStaffNewBooking threw unexpectedly'),
-    );
+    // Email notifications run after the response is sent. On Vercel,
+    // deferAfterResponse hands them to waitUntil so the function isn't
+    // frozen before they finish.
+    deferAfterResponse(notifyCustomerBookingReceived(bookingRequest), 'notifyCustomerBookingReceived');
+    deferAfterResponse(notifyStaffNewBooking(bookingRequest), 'notifyStaffNewBooking');
   } catch (err) {
     next(err);
   }

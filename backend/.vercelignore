@@ -1,0 +1,15 @@
+# Vercel builds from source; these are rebuilt or unused on the platform.
+dist
+coverage
+Dockerfile
+docker-compose.yml
+entrypoint.sh
+.dockerignore
+backup.sql
+sql
+docs
+node_modules
+.git
+.github
+*.log
+.DS_Store
