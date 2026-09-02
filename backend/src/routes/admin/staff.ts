@@ -109,7 +109,6 @@ adminStaffRouter.post('/invite', async (req, res, next) => {
       // Land the invitee on our own page that renders Clerk's <SignUp>, which
       // consumes the __clerk_ticket query param Clerk appends here. Without a
       // valid app URL Clerk falls back to its hosted /default-redirect page.
-      redirectUrl: `${env.DASHBOARD_URL}/accept-invitation`,
       // Belt-and-braces: if a pending/accepted record slipped past the revoke
       // above, still issue the new invitation rather than 400ing.
       ignoreExisting: true,

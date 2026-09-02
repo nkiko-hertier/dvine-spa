@@ -1,27 +1,4 @@
---
--- PostgreSQL database dump
---
-
-\restrict a1g7RvzRmTaYfzJfzz0A1wYvHN9FMru2amkLAnrlvadINEWJTSEAhqc2VRFFbMn
-
--- Dumped from database version 18.6 (Debian 18.6-1.pgdg13+2)
--- Dumped by pg_dump version 18.6 (Debian 18.6-1.pgdg13+2)
-
-SET statement_timeout = 0;
-SET lock_timeout = 0;
-SET idle_in_transaction_session_timeout = 0;
-SET transaction_timeout = 0;
-SET client_encoding = 'UTF8';
-SET standard_conforming_strings = on;
-SELECT pg_catalog.set_config('search_path', '', false);
-SET check_function_bodies = false;
-SET xmloption = content;
-SET client_min_messages = warning;
-SET row_security = off;
-
---
--- Name: citext; Type: EXTENSION; Schema: -; Owner: -
---
+-- READY TO RUN CEDES
 
 CREATE EXTENSION IF NOT EXISTS citext WITH SCHEMA public;
 
@@ -75,7 +52,7 @@ CREATE TYPE public.booking_status AS ENUM (
 );
 
 
-ALTER TYPE public.booking_status OWNER TO dvine;
+ALTER TYPE public.booking_status OWNER TO neondb_owner;
 
 --
 -- Name: customer_source; Type: TYPE; Schema: public; Owner: dvine
@@ -95,7 +72,7 @@ CREATE TYPE public.customer_source AS ENUM (
 );
 
 
-ALTER TYPE public.customer_source OWNER TO dvine;
+ALTER TYPE public.customer_source OWNER TO neondb_owner;
 
 --
 -- Name: user_role; Type: TYPE; Schema: public; Owner: dvine
@@ -107,7 +84,7 @@ CREATE TYPE public.user_role AS ENUM (
 );
 
 
-ALTER TYPE public.user_role OWNER TO dvine;
+ALTER TYPE public.user_role OWNER TO neondb_owner;
 
 --
 -- Name: generate_request_reference(); Type: FUNCTION; Schema: public; Owner: dvine
@@ -135,7 +112,7 @@ END;
 $$;
 
 
-ALTER FUNCTION public.generate_request_reference() OWNER TO dvine;
+ALTER FUNCTION public.generate_request_reference() OWNER TO neondb_owner;
 
 --
 -- Name: log_booking_status_change(); Type: FUNCTION; Schema: public; Owner: dvine
@@ -165,7 +142,7 @@ END;
 $$;
 
 
-ALTER FUNCTION public.log_booking_status_change() OWNER TO dvine;
+ALTER FUNCTION public.log_booking_status_change() OWNER TO neondb_owner;
 
 --
 -- Name: notify_booking_change(); Type: FUNCTION; Schema: public; Owner: dvine
@@ -198,7 +175,7 @@ END;
 $$;
 
 
-ALTER FUNCTION public.notify_booking_change() OWNER TO dvine;
+ALTER FUNCTION public.notify_booking_change() OWNER TO neondb_owner;
 
 --
 -- Name: notify_booking_status_alert(); Type: FUNCTION; Schema: public; Owner: dvine
@@ -221,7 +198,7 @@ END;
 $$;
 
 
-ALTER FUNCTION public.notify_booking_status_alert() OWNER TO dvine;
+ALTER FUNCTION public.notify_booking_status_alert() OWNER TO neondb_owner;
 
 --
 -- Name: notify_new_booking_request(); Type: FUNCTION; Schema: public; Owner: dvine
@@ -242,7 +219,7 @@ END;
 $$;
 
 
-ALTER FUNCTION public.notify_new_booking_request() OWNER TO dvine;
+ALTER FUNCTION public.notify_new_booking_request() OWNER TO neondb_owner;
 
 --
 -- Name: set_booking_timestamps(); Type: FUNCTION; Schema: public; Owner: dvine
@@ -277,7 +254,7 @@ END;
 $$;
 
 
-ALTER FUNCTION public.set_booking_timestamps() OWNER TO dvine;
+ALTER FUNCTION public.set_booking_timestamps() OWNER TO neondb_owner;
 
 --
 -- Name: set_customer_since(); Type: FUNCTION; Schema: public; Owner: dvine
@@ -295,7 +272,7 @@ END;
 $$;
 
 
-ALTER FUNCTION public.set_customer_since() OWNER TO dvine;
+ALTER FUNCTION public.set_customer_since() OWNER TO neondb_owner;
 
 --
 -- Name: update_updated_at_column(); Type: FUNCTION; Schema: public; Owner: dvine
@@ -311,7 +288,7 @@ END;
 $$;
 
 
-ALTER FUNCTION public.update_updated_at_column() OWNER TO dvine;
+ALTER FUNCTION public.update_updated_at_column() OWNER TO neondb_owner;
 
 SET default_tablespace = '';
 
@@ -335,7 +312,7 @@ CREATE TABLE public.audit_logs (
 );
 
 
-ALTER TABLE public.audit_logs OWNER TO dvine;
+ALTER TABLE public.audit_logs OWNER TO neondb_owner;
 
 --
 -- Name: booking_requests; Type: TABLE; Schema: public; Owner: dvine
@@ -363,7 +340,7 @@ CREATE TABLE public.booking_requests (
 );
 
 
-ALTER TABLE public.booking_requests OWNER TO dvine;
+ALTER TABLE public.booking_requests OWNER TO neondb_owner;
 
 --
 -- Name: categories; Type: TABLE; Schema: public; Owner: dvine
@@ -381,7 +358,7 @@ CREATE TABLE public.categories (
 );
 
 
-ALTER TABLE public.categories OWNER TO dvine;
+ALTER TABLE public.categories OWNER TO neondb_owner;
 
 --
 -- Name: customers; Type: TABLE; Schema: public; Owner: dvine
@@ -400,7 +377,7 @@ CREATE TABLE public.customers (
 );
 
 
-ALTER TABLE public.customers OWNER TO dvine;
+ALTER TABLE public.customers OWNER TO neondb_owner;
 
 --
 -- Name: treatments; Type: TABLE; Schema: public; Owner: dvine
@@ -423,7 +400,7 @@ CREATE TABLE public.treatments (
 );
 
 
-ALTER TABLE public.treatments OWNER TO dvine;
+ALTER TABLE public.treatments OWNER TO neondb_owner;
 
 --
 -- Name: booking_request_details; Type: VIEW; Schema: public; Owner: dvine
@@ -459,7 +436,7 @@ CREATE VIEW public.booking_request_details AS
      LEFT JOIN public.categories cat ON ((t.category_id = cat.id)));
 
 
-ALTER VIEW public.booking_request_details OWNER TO dvine;
+ALTER VIEW public.booking_request_details OWNER TO neondb_owner;
 
 --
 -- Name: customer_summary; Type: VIEW; Schema: public; Owner: dvine
@@ -481,7 +458,7 @@ SELECT
     NULL::timestamp without time zone AS last_activity;
 
 
-ALTER VIEW public.customer_summary OWNER TO dvine;
+ALTER VIEW public.customer_summary OWNER TO neondb_owner;
 
 --
 -- Name: daily_requests_summary; Type: VIEW; Schema: public; Owner: dvine
@@ -525,7 +502,7 @@ CREATE VIEW public.daily_requests_summary AS
   ORDER BY (date(created_at)) DESC;
 
 
-ALTER VIEW public.daily_requests_summary OWNER TO dvine;
+ALTER VIEW public.daily_requests_summary OWNER TO neondb_owner;
 
 --
 -- Name: request_reference_counters; Type: TABLE; Schema: public; Owner: dvine
@@ -537,7 +514,7 @@ CREATE TABLE public.request_reference_counters (
 );
 
 
-ALTER TABLE public.request_reference_counters OWNER TO dvine;
+ALTER TABLE public.request_reference_counters OWNER TO neondb_owner;
 
 --
 -- Name: staff; Type: TABLE; Schema: public; Owner: dvine
@@ -558,7 +535,7 @@ CREATE TABLE public.staff (
 );
 
 
-ALTER TABLE public.staff OWNER TO dvine;
+ALTER TABLE public.staff OWNER TO neondb_owner;
 
 --
 -- Name: webhook_events; Type: TABLE; Schema: public; Owner: dvine
@@ -577,91 +554,91 @@ CREATE TABLE public.webhook_events (
 );
 
 
-ALTER TABLE public.webhook_events OWNER TO dvine;
+-- ALTER TABLE public.webhook_events OWNER TO neondb_owner;
 
---
--- Data for Name: audit_logs; Type: TABLE DATA; Schema: public; Owner: dvine
---
+-- --
+-- -- Data for Name: audit_logs; Type: TABLE DATA; Schema: public; Owner: dvine
+-- --
 
-COPY public.audit_logs (id, user_id, booking_request_id, action, old_status, new_status, notes, ip_address, user_agent, created_at) FROM stdin;
-\.
-
-
---
--- Data for Name: booking_requests; Type: TABLE DATA; Schema: public; Owner: dvine
---
-
-COPY public.booking_requests (id, request_reference, customer_id, treatment_id, preferred_date, preferred_time, status, staff_notes, confirmed_date, confirmed_time, contacted_at, confirmed_at, completed_at, cancelled_at, cancellation_reason, created_at, updated_at, channel) FROM stdin;
-b09355f8-4279-4520-89ae-4194f44eedc5	\N	5bd158f2-2ec8-4180-9be5-ab30d30c83da	d4807821-44da-4d7f-bca4-6f7605fd74c6	2026-08-20	10:00:00	contacted	Called customer, waiting for confirmation	\N	\N	\N	\N	\N	\N	\N	2026-08-18 01:59:42.04	2026-08-18 01:59:42.04	website
-1ed74391-72df-4182-8d2c-1aa7b5aa9673	\N	d6926494-d6af-4fe0-8c05-7e54251f0084	06222f76-b79a-4f94-8999-460a8993206b	2026-08-23	14:00:00	confirmed	Confirmed via phone.	\N	\N	\N	\N	\N	\N	\N	2026-08-18 01:59:42.042	2026-08-18 01:59:42.042	website
-b71f0a48-91b1-4a88-b471-290221145c2b	\N	89d3c82c-2e8c-4cfa-8f2c-47a3780941a0	57b47066-4ad6-47e2-b687-3dd5f0280aa4	2026-08-21	15:00:00	new_request	\N	\N	\N	\N	\N	\N	\N	\N	2026-08-18 01:59:42.038	2026-08-18 01:59:42.038	website
-38875de4-e0a6-486b-985a-9abbd235fd74	\N	8bf01736-4222-4fec-8854-c2e32ce2f6d7	57b47066-4ad6-47e2-b687-3dd5f0280aa4	2026-09-04	23:11:00	new_request	\N	\N	\N	\N	\N	\N	\N	\N	2026-08-18 02:18:44.202	2026-08-18 02:18:44.202	instagram
-135b3fa0-7e17-4f71-9b0a-aac0f74fa17e	DV-2026-000001	8bf01736-4222-4fec-8854-c2e32ce2f6d7	57b47066-4ad6-47e2-b687-3dd5f0280aa4	2026-09-04	23:11:00	new_request	\N	\N	\N	\N	\N	\N	\N	\N	2026-08-18 04:18:01.152	2026-08-18 04:18:01.152	instagram
-dc5aa3ae-33d5-4091-a67c-a043a1ea8346	DV-2026-000002	8bf01736-4222-4fec-8854-c2e32ce2f6d7	57b47066-4ad6-47e2-b687-3dd5f0280aa4	2026-09-04	23:11:00	new_request	\N	\N	\N	\N	\N	\N	\N	\N	2026-08-18 04:18:11.224	2026-08-18 04:18:11.224	instagram
-90a8d2a2-9531-48d1-a729-c8b138e40ac9	\N	8bf01736-4222-4fec-8854-c2e32ce2f6d7	57b47066-4ad6-47e2-b687-3dd5f0280aa4	2026-09-04	23:11:00	new_request	\N	\N	\N	\N	\N	\N	\N	\N	2026-08-18 04:14:09.233	2026-08-18 04:14:09.233	instagram
-\.
+-- COPY public.audit_logs (id, user_id, booking_request_id, action, old_status, new_status, notes, ip_address, user_agent, created_at) FROM stdin;
+-- -- \.
 
 
---
--- Data for Name: categories; Type: TABLE DATA; Schema: public; Owner: dvine
---
+-- -- --
+-- -- -- Data for Name: booking_requests; Type: TABLE DATA; Schema: public; Owner: dvine
+-- -- --
 
-COPY public.categories (id, name, description, cover_image_url, is_active, display_order, created_at, updated_at) FROM stdin;
-78a3b3f4-9f6c-4d0e-ac0f-242dc1d187ca	Heat Therapy	Sauna and heat-based relaxation therapies	/images/categories/heat.jpg	t	3	2026-08-18 01:59:41.155	2026-08-18 01:59:41.155
-6748e6c4-9619-4434-8ae4-2934ff4d047f	Body Treatments	Exfoliation, wrapping, and skin nourishment services	/images/categories/body.jpg	t	2	2026-08-18 01:59:41.155	2026-08-18 01:59:41.155
-0260079f-fe30-4136-bd3a-d4377764b15a	Specialty Services	Unique treatments combining multiple techniques	/images/categories/specialty.jpg	t	4	2026-08-18 01:59:41.155	2026-08-18 01:59:41.155
-b65a00e8-1656-4718-a163-bae88ca93146	Massage Therapy	Professional massage treatments for relaxation and recovery	/images/categories/massage.jpg	t	1	2026-08-18 01:59:41.153	2026-08-18 01:59:41.153
-202d99d4-866d-431b-84ca-2b0c9c20f24c	string	string	https://example.com/	f	0	2026-08-18 02:29:44.263	2026-08-18 02:29:44.263
-\.
-
-
---
--- Data for Name: customers; Type: TABLE DATA; Schema: public; Owner: dvine
---
-
-COPY public.customers (id, full_name, phone_number, whatsapp_number, source, customer_since, notes, created_at, updated_at) FROM stdin;
-89d3c82c-2e8c-4cfa-8f2c-47a3780941a0	Sarah Mucyo	+250788999999	+250788999999	instagram	2026-08-18 01:59:41.915	First-time customer, interested in deep tissue	2026-08-18 01:59:41.915	2026-08-18 01:59:41.915
-d6926494-d6af-4fe0-8c05-7e54251f0084	Claudine Uwimana	+250788777777	+250788777777	website	2026-08-18 01:59:41.923	Found us through Google search	2026-08-18 01:59:41.923	2026-08-18 01:59:41.923
-5bd158f2-2ec8-4180-9be5-ab30d30c83da	Jean-Pierre Habimana	+250788888888	\N	referral	2026-08-18 01:59:41.92	Referred by Sarah M. Prefers morning appointments	2026-08-18 01:59:41.92	2026-08-18 01:59:41.92
-8bf01736-4222-4fec-8854-c2e32ce2f6d7	NKiko Hertier	2500000000	2500000000	instagram	2026-08-18 02:18:43.403	string	2026-08-18 02:18:43.403	2026-08-18 02:18:43.403
-\.
+-- COPY public.booking_requests (id, request_reference, customer_id, treatment_id, preferred_date, preferred_time, status, staff_notes, confirmed_date, confirmed_time, contacted_at, confirmed_at, completed_at, cancelled_at, cancellation_reason, created_at, updated_at, channel) FROM stdin;
+-- b09355f8-4279-4520-89ae-4194f44eedc5	\N	5bd158f2-2ec8-4180-9be5-ab30d30c83da	d4807821-44da-4d7f-bca4-6f7605fd74c6	2026-08-20	10:00:00	contacted	Called customer, waiting for confirmation	\N	\N	\N	\N	\N	\N	\N	2026-08-18 01:59:42.04	2026-08-18 01:59:42.04	website
+-- 1ed74391-72df-4182-8d2c-1aa7b5aa9673	\N	d6926494-d6af-4fe0-8c05-7e54251f0084	06222f76-b79a-4f94-8999-460a8993206b	2026-08-23	14:00:00	confirmed	Confirmed via phone.	\N	\N	\N	\N	\N	\N	\N	2026-08-18 01:59:42.042	2026-08-18 01:59:42.042	website
+-- b71f0a48-91b1-4a88-b471-290221145c2b	\N	89d3c82c-2e8c-4cfa-8f2c-47a3780941a0	57b47066-4ad6-47e2-b687-3dd5f0280aa4	2026-08-21	15:00:00	new_request	\N	\N	\N	\N	\N	\N	\N	\N	2026-08-18 01:59:42.038	2026-08-18 01:59:42.038	website
+-- 38875de4-e0a6-486b-985a-9abbd235fd74	\N	8bf01736-4222-4fec-8854-c2e32ce2f6d7	57b47066-4ad6-47e2-b687-3dd5f0280aa4	2026-09-04	23:11:00	new_request	\N	\N	\N	\N	\N	\N	\N	\N	2026-08-18 02:18:44.202	2026-08-18 02:18:44.202	instagram
+-- 135b3fa0-7e17-4f71-9b0a-aac0f74fa17e	DV-2026-000001	8bf01736-4222-4fec-8854-c2e32ce2f6d7	57b47066-4ad6-47e2-b687-3dd5f0280aa4	2026-09-04	23:11:00	new_request	\N	\N	\N	\N	\N	\N	\N	\N	2026-08-18 04:18:01.152	2026-08-18 04:18:01.152	instagram
+-- dc5aa3ae-33d5-4091-a67c-a043a1ea8346	DV-2026-000002	8bf01736-4222-4fec-8854-c2e32ce2f6d7	57b47066-4ad6-47e2-b687-3dd5f0280aa4	2026-09-04	23:11:00	new_request	\N	\N	\N	\N	\N	\N	\N	\N	2026-08-18 04:18:11.224	2026-08-18 04:18:11.224	instagram
+-- 90a8d2a2-9531-48d1-a729-c8b138e40ac9	\N	8bf01736-4222-4fec-8854-c2e32ce2f6d7	57b47066-4ad6-47e2-b687-3dd5f0280aa4	2026-09-04	23:11:00	new_request	\N	\N	\N	\N	\N	\N	\N	\N	2026-08-18 04:14:09.233	2026-08-18 04:14:09.233	instagram
+-- -- \.
 
 
---
--- Data for Name: request_reference_counters; Type: TABLE DATA; Schema: public; Owner: dvine
---
+-- -- --
+-- -- -- Data for Name: categories; Type: TABLE DATA; Schema: public; Owner: dvine
+-- -- --
 
-COPY public.request_reference_counters (year_part, last_seq) FROM stdin;
-\.
-
-
---
--- Data for Name: staff; Type: TABLE DATA; Schema: public; Owner: dvine
---
-
-COPY public.staff (id, email, password_hash, full_name, role, phone_number, is_active, last_login, created_at, updated_at, clerk_user_id) FROM stdin;
-\.
+-- COPY public.categories (id, name, description, cover_image_url, is_active, display_order, created_at, updated_at) FROM stdin;
+-- 78a3b3f4-9f6c-4d0e-ac0f-242dc1d187ca	Heat Therapy	Sauna and heat-based relaxation therapies	/images/categories/heat.jpg	t	3	2026-08-18 01:59:41.155	2026-08-18 01:59:41.155
+-- 6748e6c4-9619-4434-8ae4-2934ff4d047f	Body Treatments	Exfoliation, wrapping, and skin nourishment services	/images/categories/body.jpg	t	2	2026-08-18 01:59:41.155	2026-08-18 01:59:41.155
+-- 0260079f-fe30-4136-bd3a-d4377764b15a	Specialty Services	Unique treatments combining multiple techniques	/images/categories/specialty.jpg	t	4	2026-08-18 01:59:41.155	2026-08-18 01:59:41.155
+-- b65a00e8-1656-4718-a163-bae88ca93146	Massage Therapy	Professional massage treatments for relaxation and recovery	/images/categories/massage.jpg	t	1	2026-08-18 01:59:41.153	2026-08-18 01:59:41.153
+-- 202d99d4-866d-431b-84ca-2b0c9c20f24c	string	string	https://example.com/	f	0	2026-08-18 02:29:44.263	2026-08-18 02:29:44.263
+-- -- \.
 
 
---
--- Data for Name: treatments; Type: TABLE DATA; Schema: public; Owner: dvine
---
+-- -- --
+-- -- -- Data for Name: customers; Type: TABLE DATA; Schema: public; Owner: dvine
+-- -- --
 
-COPY public.treatments (id, category_id, name, description, duration_minutes, price, image_url, benefits, recommended_for, is_active, display_order, created_at, updated_at) FROM stdin;
-57b47066-4ad6-47e2-b687-3dd5f0280aa4	b65a00e8-1656-4718-a163-bae88ca93146	Deep Tissue Massage	A deeper massage experience designed to help relieve muscle tension and support relaxation.	60	30000.00	/images/deep-tissue.jpg	{"Relieves muscle tension","Improves circulation","Reduces stress","Speeds recovery"}	{"Muscle tension","Physical fatigue","Regular exercisers","Deeper pressure seekers"}	t	1	2026-08-18 01:59:41.67	2026-08-18 01:59:41.67
-d4807821-44da-4d7f-bca4-6f7605fd74c6	b65a00e8-1656-4718-a163-bae88ca93146	Relaxation Massage	Gentle, flowing strokes to calm your nervous system and promote deep relaxation.	50	25000.00	/images/relaxation.jpg	{"Reduces anxiety","Lowers blood pressure","Improves sleep","Relaxes muscles"}	{"Stress relief","First-time clients","Gentle pressure preference"}	t	2	2026-08-18 01:59:41.747	2026-08-18 01:59:41.747
-06222f76-b79a-4f94-8999-460a8993206b	b65a00e8-1656-4718-a163-bae88ca93146	Hot Stone Massage	Warm basalt stones combined with massage to melt away tension and promote deep relaxation.	75	40000.00	/images/hot-stone.jpg	{"Deep muscle relaxation","Improves blood flow","Reduces anxiety","Alleviates chronic pain"}	{"Chronic pain",Stress,"Muscle stiffness","Luxury seekers"}	t	3	2026-08-18 01:59:41.788	2026-08-18 01:59:41.788
-5c542876-fbca-46e9-ba22-4d4be95b6f9d	6748e6c4-9619-4434-8ae4-2934ff4d047f	Body Scrub & Wrap	Exfoliate and nourish your skin with natural ingredients, leaving you refreshed and glowing.	75	35000.00	/images/body-scrub.jpg	{"Removes dead skin cells","Improves skin texture","Detoxifies body","Hydrates skin"}	{"Dry skin","Dull complexion","Special occasions","Detox seekers"}	t	1	2026-08-18 01:59:41.84	2026-08-18 01:59:41.84
-4fcfb903-ed5c-4b31-8b46-b5361a153834	78a3b3f4-9f6c-4d0e-ac0f-242dc1d187ca	Sauna Session	Deep detoxification and relaxation in our traditional Finnish-style sauna.	30	15000.00	/images/sauna.jpg	{"Detoxifies body","Improves circulation","Relieves muscle pain","Boosts immune system"}	{"Post-workout recovery",Detox,"Stress relief"}	t	1	2026-08-18 01:59:41.876	2026-08-18 01:59:41.876
-\.
+-- COPY public.customers (id, full_name, phone_number, whatsapp_number, source, customer_since, notes, created_at, updated_at) FROM stdin;
+-- 89d3c82c-2e8c-4cfa-8f2c-47a3780941a0	Sarah Mucyo	+250788999999	+250788999999	instagram	2026-08-18 01:59:41.915	First-time customer, interested in deep tissue	2026-08-18 01:59:41.915	2026-08-18 01:59:41.915
+-- d6926494-d6af-4fe0-8c05-7e54251f0084	Claudine Uwimana	+250788777777	+250788777777	website	2026-08-18 01:59:41.923	Found us through Google search	2026-08-18 01:59:41.923	2026-08-18 01:59:41.923
+-- 5bd158f2-2ec8-4180-9be5-ab30d30c83da	Jean-Pierre Habimana	+250788888888	\N	referral	2026-08-18 01:59:41.92	Referred by Sarah M. Prefers morning appointments	2026-08-18 01:59:41.92	2026-08-18 01:59:41.92
+-- 8bf01736-4222-4fec-8854-c2e32ce2f6d7	NKiko Hertier	2500000000	2500000000	instagram	2026-08-18 02:18:43.403	string	2026-08-18 02:18:43.403	2026-08-18 02:18:43.403
+-- -- \.
 
 
---
--- Data for Name: webhook_events; Type: TABLE DATA; Schema: public; Owner: dvine
---
+-- -- --
+-- -- -- Data for Name: request_reference_counters; Type: TABLE DATA; Schema: public; Owner: dvine
+-- -- --
 
-COPY public.webhook_events (id, provider, event_id, event_type, payload, status, error_message, processed_at, created_at) FROM stdin;
-\.
+-- COPY public.request_reference_counters (year_part, last_seq) FROM stdin;
+-- -- \.
+
+
+-- -- --
+-- -- -- Data for Name: staff; Type: TABLE DATA; Schema: public; Owner: dvine
+-- -- --
+
+-- COPY public.staff (id, email, password_hash, full_name, role, phone_number, is_active, last_login, created_at, updated_at, clerk_user_id) FROM stdin;
+-- -- \.
+
+
+-- -- --
+-- -- -- Data for Name: treatments; Type: TABLE DATA; Schema: public; Owner: dvine
+-- -- --
+
+-- COPY public.treatments (id, category_id, name, description, duration_minutes, price, image_url, benefits, recommended_for, is_active, display_order, created_at, updated_at) FROM stdin;
+-- 57b47066-4ad6-47e2-b687-3dd5f0280aa4	b65a00e8-1656-4718-a163-bae88ca93146	Deep Tissue Massage	A deeper massage experience designed to help relieve muscle tension and support relaxation.	60	30000.00	/images/deep-tissue.jpg	{"Relieves muscle tension","Improves circulation","Reduces stress","Speeds recovery"}	{"Muscle tension","Physical fatigue","Regular exercisers","Deeper pressure seekers"}	t	1	2026-08-18 01:59:41.67	2026-08-18 01:59:41.67
+-- d4807821-44da-4d7f-bca4-6f7605fd74c6	b65a00e8-1656-4718-a163-bae88ca93146	Relaxation Massage	Gentle, flowing strokes to calm your nervous system and promote deep relaxation.	50	25000.00	/images/relaxation.jpg	{"Reduces anxiety","Lowers blood pressure","Improves sleep","Relaxes muscles"}	{"Stress relief","First-time clients","Gentle pressure preference"}	t	2	2026-08-18 01:59:41.747	2026-08-18 01:59:41.747
+-- 06222f76-b79a-4f94-8999-460a8993206b	b65a00e8-1656-4718-a163-bae88ca93146	Hot Stone Massage	Warm basalt stones combined with massage to melt away tension and promote deep relaxation.	75	40000.00	/images/hot-stone.jpg	{"Deep muscle relaxation","Improves blood flow","Reduces anxiety","Alleviates chronic pain"}	{"Chronic pain",Stress,"Muscle stiffness","Luxury seekers"}	t	3	2026-08-18 01:59:41.788	2026-08-18 01:59:41.788
+-- 5c542876-fbca-46e9-ba22-4d4be95b6f9d	6748e6c4-9619-4434-8ae4-2934ff4d047f	Body Scrub & Wrap	Exfoliate and nourish your skin with natural ingredients, leaving you refreshed and glowing.	75	35000.00	/images/body-scrub.jpg	{"Removes dead skin cells","Improves skin texture","Detoxifies body","Hydrates skin"}	{"Dry skin","Dull complexion","Special occasions","Detox seekers"}	t	1	2026-08-18 01:59:41.84	2026-08-18 01:59:41.84
+-- 4fcfb903-ed5c-4b31-8b46-b5361a153834	78a3b3f4-9f6c-4d0e-ac0f-242dc1d187ca	Sauna Session	Deep detoxification and relaxation in our traditional Finnish-style sauna.	30	15000.00	/images/sauna.jpg	{"Detoxifies body","Improves circulation","Relieves muscle pain","Boosts immune system"}	{"Post-workout recovery",Detox,"Stress relief"}	t	1	2026-08-18 01:59:41.876	2026-08-18 01:59:41.876
+-- -- \.
+
+
+-- -- --
+-- -- -- Data for Name: webhook_events; Type: TABLE DATA; Schema: public; Owner: dvine
+-- -- --
+
+-- COPY public.webhook_events (id, provider, event_id, event_type, payload, status, error_message, processed_at, created_at) FROM stdin;
+-- -- \.
 
 
 --
@@ -1105,5 +1082,13 @@ ALTER TABLE ONLY public.treatments
 -- PostgreSQL database dump complete
 --
 
-\unrestrict a1g7RvzRmTaYfzJfzz0A1wYvHN9FMru2amkLAnrlvadINEWJTSEAhqc2VRFFbMn
+-- \unrestrict a1g7RvzRmTaYfzJfzz0A1wYvHN9FMru2amkLAnrlvadINEWJTSEAhqc2VRFFbMn
+
+
+
+
+
+
+
+
 
