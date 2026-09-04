@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import AOS from "aos";
 import "aos/dist/aos.css";
-import { Sparkles, Clock3, CheckCircle2, RotateCcw, X } from "lucide-react";
+import { Sparkles, Clock3, CheckCircle2, RotateCcw, MessageCircle, X } from "lucide-react";
 import { usePublicCategories, usePublicTreatments, useCreateBookingRequest } from "../lib/helpers";
 import { TIME_OPTIONS } from "../lib/bookingStatus";
 import type { CustomerSource } from "../types";
@@ -15,6 +15,9 @@ import type { CustomerSource } from "../types";
  */
 
 const STORAGE_KEY = "dvine_spa_booking_contact_v1";
+
+/** Same number as the footer's tel: link, digits-only for the wa.me deep link. */
+const WHATSAPP_NUMBER = "250782867790";
 
 interface SavedContact {
   full_name: string;
@@ -201,6 +204,17 @@ export default function PublicBooking(): React.ReactElement {
   // -------------------------------------------------------------- success --
   if (createBooking.isSuccess && createBooking.data) {
     const r = createBooking.data;
+    const confirmedDateLabel = new Date(r.preferred_date).toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "long",
+    });
+    const confirmedTimeLabel = to12h(r.preferred_time);
+    const waMessage =
+      `Hi! 👋\nI'm booking *${r.treatment.name}* on ${confirmedDateLabel} at ${confirmedTimeLabel} from the ` +
+      `website. I'd like to confirm my booking` +
+      (r.request_reference ? ` — my booking code is *${r.request_reference}*.` : ".");
+    const waHref = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(waMessage)}`;
+
     return (
       <main className="min-h-screen bg-[#0A2619] flex items-center justify-center px-6 py-16 font-['Work_Sans',sans-serif]">
         <div
@@ -213,21 +227,30 @@ export default function PublicBooking(): React.ReactElement {
           <h1 className="font-serif text-3xl text-[#1C3A27]">Request received</h1>
           <p className="text-sm text-stone-600 leading-relaxed">
             Thank you, {fullName.trim().split(" ")[0]}. We'll confirm your{" "}
-            <span className="font-medium text-[#1C3A27]">{r.treatment.name}</span> on{" "}
-            {new Date(r.preferred_date).toLocaleDateString("en-GB", { day: "numeric", month: "long" })} by phone or
-            WhatsApp shortly.
+            <span className="font-medium text-[#1C3A27]">{r.treatment.name}</span> on {confirmedDateLabel} by phone
+            or WhatsApp shortly.
           </p>
           {r.request_reference && (
             <p className="text-[11px] uppercase tracking-[0.2em] text-stone-500">
               Reference&nbsp;<span className="font-semibold text-[#1C3A27]">{r.request_reference}</span>
             </p>
           )}
-          <button
-            onClick={handleBookAnother}
-            className="inline-flex items-center gap-2 bg-[#1C3A27] text-[#F8F6F0] px-6 py-2.5 text-[10px] uppercase tracking-[0.2em] font-semibold hover:bg-[#0A2619] transition-colors shadow-sm"
-          >
-            <RotateCcw className="w-3.5 h-3.5" /> Book another visit
-          </button>
+          <div className="space-y-2.5">
+            <a
+              href={waHref}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center justify-center gap-2 bg-[#25D366] text-[#0A2619] px-6 py-3 text-[11px] uppercase tracking-[0.2em] font-semibold hover:bg-[#1fbd5a] transition-colors"
+            >
+              <MessageCircle className="w-4 h-4" /> Continue on WhatsApp
+            </a>
+            <button
+              onClick={handleBookAnother}
+              className="w-full inline-flex items-center justify-center gap-2 bg-transparent text-[#1C3A27] px-6 py-2.5 text-[10px] uppercase tracking-[0.2em] font-semibold border border-stone-300 hover:bg-stone-200/60 transition-colors"
+            >
+              <RotateCcw className="w-3.5 h-3.5" /> Book another visit
+            </button>
+          </div>
         </div>
       </main>
     );
@@ -266,7 +289,7 @@ export default function PublicBooking(): React.ReactElement {
         <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-5">
           <form
             onSubmit={handleSubmit}
-            className="bg-[#EFECE6] border border-stone-300/80 shadow-sm p-6 sm:p-8 space-y-6"
+            className="bg-[#EFECE6] text-[#1C3A27] border border-stone-300/80 shadow-sm p-6 sm:p-8 space-y-6"
             data-aos="fade-up"
           >
             {welcomeBack && saved && (
