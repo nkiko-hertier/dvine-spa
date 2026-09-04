@@ -1,0 +1,39 @@
+/* Custom scrollbar — one look for every scrollable area (page body,
+ * the treatment picker list on /book, the sticky sidebar table pages,
+ * etc.) across browsers, so it doesn't default to whatever the OS/browser
+ * ships. Two separate specs cover the two rendering engines that matter:
+ *  - Firefox: scrollbar-width / scrollbar-color (inherited, so setting it
+ *    once on :root reaches every scrollable descendant).
+ *  - Chromium/WebKit (Chrome, Edge, Safari): the ::-webkit-scrollbar
+ *    pseudo-elements, unscoped so they apply to every scroll container.
+ * Mobile Safari/Chrome render slim overlay scrollbars regardless of these
+ * rules — that's platform behavior CSS can't override further.
+ */
+:root {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(28, 58, 39, 0.55) rgba(0, 0, 0, 0.06);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(28, 58, 39, 0.55);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #1c3a27;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}

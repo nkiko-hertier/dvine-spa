@@ -202,9 +202,9 @@ export default function PublicBooking(): React.ReactElement {
   if (createBooking.isSuccess && createBooking.data) {
     const r = createBooking.data;
     return (
-      <main className="min-h-screen bg-[#F8F6F0] flex items-center justify-center px-6 py-16 font-['Work_Sans',sans-serif]">
+      <main className="min-h-screen bg-[#0A2619] flex items-center justify-center px-6 py-16 font-['Work_Sans',sans-serif]">
         <div
-          className="max-w-md w-full text-center space-y-5 bg-[#EFECE6] border border-stone-300/80 p-10 shadow-sm"
+          className="max-w-md w-full text-center space-y-5 bg-[#EFECE6] border border-stone-300/80 p-10 shadow-xl"
           data-aos="zoom-in"
         >
           <div className="w-14 h-14 rounded-full bg-[#1C3A27] text-[#F8F6F0] flex items-center justify-center mx-auto">
@@ -235,7 +235,7 @@ export default function PublicBooking(): React.ReactElement {
 
   // ----------------------------------------------------------------- form --
   return (
-    <main className="min-h-screen bg-[#F8F6F0] font-['Work_Sans',sans-serif] text-[#1C3A27]">
+    <main className="min-h-screen bg-[#0A2619] font-['Work_Sans',sans-serif] text-stone-100">
       {/* Hero */}
       <section className="relative h-[200px] sm:h-[240px] overflow-hidden">
         <img
@@ -243,7 +243,7 @@ export default function PublicBooking(): React.ReactElement {
           alt=""
           className="absolute inset-0 w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0A2619]/80 via-[#0A2619]/70 to-[#F8F6F0]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0A2619]/85 via-[#0A2619]/55 to-[#0A2619]" />
         <div className="relative h-full max-w-5xl mx-auto px-6 flex flex-col items-center justify-center text-center text-[#F8F6F0]">
           <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.3em] text-emerald-300">
             <Sparkles className="w-3 h-3" /> d'Vine Spa
@@ -489,11 +489,11 @@ export default function PublicBooking(): React.ReactElement {
 
           {/* Live summary */}
           <aside
-            className="bg-[#1C3A27] text-[#F8F6F0] p-6 h-fit lg:sticky lg:top-6 space-y-4"
+            className="bg-white text-[#1C3A27] border border-stone-200 shadow-lg p-6 h-fit lg:sticky lg:top-6 space-y-4"
             data-aos="fade-up"
             data-aos-delay="100"
           >
-            <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.25em] text-emerald-300">
+            <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.25em] text-emerald-700">
               <Sparkles className="w-3 h-3" /> Your reservation
             </span>
 
@@ -501,27 +501,27 @@ export default function PublicBooking(): React.ReactElement {
               <div className="space-y-1">
                 <p className="font-serif text-xl">{selectedTreatment.name}</p>
                 {selectedTreatment.category?.name && (
-                  <p className="text-[10px] uppercase tracking-widest text-emerald-300/90">
+                  <p className="text-[10px] uppercase tracking-widest text-emerald-700/90">
                     {selectedTreatment.category.name}
                   </p>
                 )}
-                <p className="text-sm text-stone-200 font-light">
+                <p className="text-sm text-stone-600 font-light">
                   RWF {Number(selectedTreatment.price).toLocaleString()} · {selectedTreatment.duration_minutes} min
                 </p>
               </div>
             ) : (
-              <p className="text-xs text-stone-300 font-light">Choose a service to see it summarised here.</p>
+              <p className="text-xs text-stone-500 font-light">Choose a service to see it summarised here.</p>
             )}
 
             {(date || time) && (
-              <div className="border-t border-emerald-800/60 pt-4 space-y-1 text-xs text-stone-200">
+              <div className="border-t border-stone-200 pt-4 space-y-1 text-xs text-stone-600">
                 {date && (
                   <p>
                     {new Date(date).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
                   </p>
                 )}
                 {time && selectedTreatment && (
-                  <p className="flex items-center gap-1.5 text-emerald-300">
+                  <p className="flex items-center gap-1.5 text-emerald-700 font-medium">
                     <Clock3 className="w-3.5 h-3.5" />
                     {to12h(time)} – {to12h(addMinutes(time, selectedTreatment.duration_minutes))}
                   </p>
@@ -530,7 +530,7 @@ export default function PublicBooking(): React.ReactElement {
               </div>
             )}
 
-            <p className="text-[10px] text-stone-300/80 font-light border-t border-emerald-800/60 pt-4 leading-relaxed">
+            <p className="text-[10px] text-stone-500 font-light border-t border-stone-200 pt-4 leading-relaxed">
               This confirms nothing yet — it's a request. We'll reach out by phone or WhatsApp to lock it in.
             </p>
           </aside>
@@ -538,18 +538,18 @@ export default function PublicBooking(): React.ReactElement {
       </section>
 
       {/* Slim contact footer */}
-      <footer className="border-t border-stone-300/70 bg-[#EFECE6] py-5 text-center text-[10px] text-stone-500 space-y-1">
+      <footer className="border-t border-emerald-900/60 bg-[#0A2619] py-5 text-center text-[10px] text-stone-300 space-y-1">
         <p>
-          <a href="tel:+250782867790" className="hover:text-[#1C3A27] transition-colors">
+          <a href="tel:+250782867790" className="hover:text-white transition-colors">
             +250 782 867 790
           </a>
           {" · "}
-          <a href="mailto:dvinespa2@gmail.com" className="hover:text-[#1C3A27] transition-colors">
+          <a href="mailto:dvinespa2@gmail.com" className="hover:text-white transition-colors">
             dvinespa2@gmail.com
           </a>
           {" · "}Kigali-Kiyovu, Rwanda
         </p>
-        <p className="text-stone-400">Open daily 08:00 – 20:00</p>
+        <p className="text-stone-500">Open daily 08:00 – 20:00</p>
       </footer>
     </main>
   );
