@@ -61,9 +61,10 @@ export class ApiError extends Error {
 }
 
 // Every request goes to `/api/*`, which is proxied straight to the D'Vine Spa
-// API (http://5.189.175.8:4000). Dev: vite.config.js server/preview proxy.
-// Prod: vercel.json rewrite. Components never call fetch directly - this is the
-// only place that talks to the backend.
+// API (API_URL, default https://cms-api.pixelspringmarketing.com — override
+// via .env.local, see vite.config.js). Dev: vite.config.js server/preview
+// proxy. Prod: vercel.json rewrite. Components never call fetch directly -
+// this is the only place that talks to the backend.
 const API_PREFIX = '/api';
 const enc = encodeURIComponent;
 

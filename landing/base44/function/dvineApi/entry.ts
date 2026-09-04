@@ -1,14 +1,18 @@
-// Server-side proxy for the D'Vine Spa public booking API.
-// The spa API is HTTP-only, so the browser (HTTPS) cannot call it directly
-// (mixed content). This bounded proxy forwards only the public operations the
-// website needs, validates each one, and returns the upstream envelope as-is.
+// Server-side proxy for the D'Vine Spa public booking API. This bounded
+// proxy forwards only the public operations the website needs, validates
+// each one, and returns the upstream envelope as-is.
 
-// Base44 backend-function egress blocks raw-IP fetches (Cloudflare 1003).
-// 5.189.175.8.nip.io resolves to the spa server's IP, so the egress sees a
-// hostname while the connection lands on the right box.
-const API_BASE_URL =
-  (typeof process !== "undefined" && process.env && process.env.DVINE_API_BASE_URL) ||
-  "http://5.189.175.8.nip.io:4000";
+// API_URL is the env var to set in the Base44 dashboard (Settings ->
+// Environment Variables). DVINE_API_BASE_URL is kept as a fallback for
+// existing deployments that already set that name. Falls back to the
+// PixelSpring-hosted API if neither is configured.
+const DEFAULT_API_URL = "https://cms-api.pixelspringmarketing.com";
+const API_BASE_URL = (
+  (typeof process !== "undefined" &&
+    process.env &&
+    (process.env.API_URL || process.env.DVINE_API_BASE_URL)) ||
+  DEFAULT_API_URL
+).replace(/\/+$/, "");
 
 const VALID_OPS = new Set([
   "categories",

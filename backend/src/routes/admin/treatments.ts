@@ -106,11 +106,26 @@ adminTreatmentsRouter.patch('/:id', async (req, res, next) => {
   }
 });
 
-/** Soft delete — never hard-deleted (booking_requests.treatment_id has ON DELETE RESTRICT). */
+/**
+ * DELETE /admin/treatments/:id
+ *
+ * Hard delete when this treatment has never been booked. Otherwise falls
+ * back to a soft delete (isActive=false) — booking_requests.treatment_id
+ * is ON DELETE RESTRICT, so a hard delete would fail anyway once a
+ * booking exists.
+ */
 adminTreatmentsRouter.delete('/:id', async (req, res, next) => {
   try {
     const existing = await prisma.treatment.findUnique({ where: { id: req.params.id } });
     if (!existing) throw AppError.notFound('Treatment not found.');
+
+    const bookingCount = await prisma.bookingRequest.count({ where: { treatmentId: existing.id } });
+    if (bookingCount === 0) {
+      await prisma.treatment.delete({ where: { id: existing.id } });
+      ok(res, { id: existing.id, deleted: true });
+      return;
+    }
+
     const treatment = await prisma.treatment.update({ where: { id: existing.id }, data: { isActive: false }, include: { category: true } });
     ok(res, serializeTreatment(treatment));
   } catch (err) {

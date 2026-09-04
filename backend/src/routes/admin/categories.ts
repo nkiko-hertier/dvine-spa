@@ -104,11 +104,33 @@ adminCategoriesRouter.patch('/:id', async (req, res, next) => {
   }
 });
 
-/** Soft delete — categories are never hard-deleted (§5). */
+/**
+ * DELETE /admin/categories/:id
+ *
+ * Hard delete when none of this category's treatments have ever been
+ * booked (also removes those never-booked treatments, so nothing is left
+ * dangling with a null category_id). Otherwise falls back to a soft
+ * delete (isActive=false) — booking_requests.treatment_id is ON DELETE
+ * RESTRICT, so a hard delete would fail anyway once a booking exists.
+ */
 adminCategoriesRouter.delete('/:id', async (req, res, next) => {
   try {
     const existing = await prisma.category.findUnique({ where: { id: req.params.id } });
     if (!existing) throw AppError.notFound('Category not found.');
+
+    const bookingCount = await prisma.bookingRequest.count({
+      where: { treatment: { categoryId: existing.id } },
+    });
+
+    if (bookingCount === 0) {
+      await prisma.$transaction([
+        prisma.treatment.deleteMany({ where: { categoryId: existing.id } }),
+        prisma.category.delete({ where: { id: existing.id } }),
+      ]);
+      ok(res, { id: existing.id, deleted: true });
+      return;
+    }
+
     const category = await prisma.category.update({ where: { id: existing.id }, data: { isActive: false } });
     ok(res, serializeCategory(category));
   } catch (err) {

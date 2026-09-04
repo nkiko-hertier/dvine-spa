@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 // import Booking from "./pages/Booking";
 import Login from "./pages/admin/Login";
 import AcceptInvitation from "./pages/admin/AcceptInvitation";
+import PublicBooking from "./pages/PublicBooking";
 import Dashboard from "./pages/admin/Dashboard";
 import NotFound from "./pages/NotFound";
 import BookingConfirmation from "./pages/BookingConfirmation";
@@ -25,7 +26,11 @@ export default function App() {
         <BrowserRouter>
             
             <Routes>
-                <Route path="/" element={<Login />} />
+                {/* Stand-in public booking page while the real marketing site
+                    (../landing) isn't live — see src/pages/PublicBooking.tsx.
+                    /book is kept as an alias in case that link is already shared. */}
+                <Route path="/" element={<PublicBooking />} />
+                <Route path="/book" element={<PublicBooking />} />
                 {/*<Route path="/about" element={<About />} />
                 <Route path="/services" element={<Services />} />
                 <Route path="/contact" element={<Contact />} />

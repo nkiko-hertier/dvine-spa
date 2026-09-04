@@ -117,9 +117,15 @@ registry.registerPath({
 });
 registry.registerPath({
   method: 'delete', path: '/admin/categories/{id}', tags: ['Admin / Categories'], security: bearerAuth,
-  summary: 'Soft delete (is_active=false)',
+  summary: 'Hard delete if none of this category\'s treatments have ever been booked (also removes those treatments); otherwise soft delete (is_active=false).',
   request: { params: z.object({ id: z.string().uuid() }) },
-  responses: { 200: okJson('Deactivated', categorySchema), ...commonErrorResponses },
+  responses: {
+    200: okJson(
+      'Deleted (no bookings on any treatment in this category) or deactivated',
+      z.union([z.object({ id: z.string().uuid(), deleted: z.literal(true) }), categorySchema]),
+    ),
+    ...commonErrorResponses,
+  },
 });
 
 // ------------------------------------------------------------
@@ -148,9 +154,15 @@ registry.registerPath({
 });
 registry.registerPath({
   method: 'delete', path: '/admin/treatments/{id}', tags: ['Admin / Treatments'], security: bearerAuth,
-  summary: 'Soft delete (is_active=false)',
+  summary: 'Hard delete if this treatment has never been booked; otherwise soft delete (is_active=false).',
   request: { params: z.object({ id: z.string().uuid() }) },
-  responses: { 200: okJson('Deactivated', treatmentSchema), ...commonErrorResponses },
+  responses: {
+    200: okJson(
+      'Deleted (no bookings) or deactivated',
+      z.union([z.object({ id: z.string().uuid(), deleted: z.literal(true) }), treatmentSchema]),
+    ),
+    ...commonErrorResponses,
+  },
 });
 
 // ------------------------------------------------------------
