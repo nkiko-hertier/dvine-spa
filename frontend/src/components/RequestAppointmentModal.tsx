@@ -44,6 +44,7 @@ export default function RequestAppointmentModal({
   const [treatmentId, setTreatmentId] = useState<string>(customer?.most_common_treatment?.id ?? "");
   const [date, setDate] = useState<string>("");
   const [time, setTime] = useState<string>("");
+  const [numberOfPeople, setNumberOfPeople] = useState<number>(1);
   const [notes, setNotes] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -70,6 +71,7 @@ export default function RequestAppointmentModal({
         preferred_date: date,
         preferred_time: time,
         channel: "website",
+        number_of_people: numberOfPeople,
         notes: notes || undefined,
       });
       queryClient.invalidateQueries({ queryKey: ["admin", "bookingRequests", "list"] });
@@ -241,6 +243,23 @@ export default function RequestAppointmentModal({
                     ))}
                   </select>
                 </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] uppercase tracking-wider text-stone-600 font-semibold">
+                  Number of People
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={numberOfPeople}
+                  onChange={(e) => setNumberOfPeople(Math.max(1, Number(e.target.value) || 1))}
+                  className="w-full p-2.5 bg-[#F8F6F0] border border-stone-300 text-xs text-[#1C3A27] focus:outline-none focus:border-[#1C3A27]"
+                />
+                <p className="text-[9px] text-stone-500">
+                  Total is this &times; the service price, shown once the booking is saved.
+                </p>
               </div>
 
               <div className="space-y-1">

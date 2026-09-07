@@ -7,6 +7,7 @@ import {
   CalendarCheck,
   Users,
   ShieldCheck,
+  Wallet,
   Plus,
   X,
 } from "lucide-react";
@@ -67,6 +68,7 @@ export default function Sidebar(): React.ReactElement {
       { name: "Categories", path: "/dashboard/categories", icon: Layers },
       { name: "Services", path: "/dashboard/services", icon: Briefcase },
       { name: "Bookings", path: "/dashboard/bookings", icon: CalendarCheck },
+      { name: "Payments", path: "/dashboard/payments", icon: Wallet },
       { name: "Clients", path: "/dashboard/customers", icon: Users },
       ...(isAdmin
         ? [{ name: "User Management", path: "/dashboard/users", icon: ShieldCheck }]

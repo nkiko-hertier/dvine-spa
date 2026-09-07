@@ -147,6 +147,12 @@ model BookingRequest {
   createdAt           DateTime       @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt           DateTime       @default(now()) @map("updated_at") @db.Timestamp(6)
   channel             CustomerSource @default(website)
+  numberOfPeople      Int            @default(1) @map("number_of_people")
+  totalAmount         Decimal?       @map("total_amount") @db.Decimal(10, 2)
+  // Per-booking acquisition source, frozen at creation. NULL = staff-entered
+  // in the dashboard (D'Vine); NOT NULL = public booking site (PixelSpring).
+  // Drives the PX-/DV- request_reference prefix and the payment report split.
+  source              CustomerSource?
 
   customer  Customer   @relation(fields: [customerId], references: [id], onDelete: Restrict)
   treatment Treatment  @relation(fields: [treatmentId], references: [id], onDelete: Restrict)
@@ -158,6 +164,7 @@ model BookingRequest {
   @@index([preferredDate], map: "idx_booking_requests_date")
   @@index([createdAt], map: "idx_booking_requests_created")
   @@index([channel], map: "idx_booking_requests_channel")
+  @@index([source], map: "idx_booking_requests_source")
   @@index([status, preferredDate], map: "idx_booking_requests_status_date")
   @@map("booking_requests")
 }
@@ -257,6 +264,9 @@ view BookingRequestDetail {
   confirmedAt      DateTime? @map("confirmed_at") @db.Timestamp(6)
   createdAt        DateTime? @map("created_at") @db.Timestamp(6)
   isResolved       Boolean?  @map("is_resolved")
+  numberOfPeople   Int?      @map("number_of_people")
+  totalAmount      Decimal?  @map("total_amount") @db.Decimal(10, 2)
+  bookingSource    CustomerSource? @map("booking_source")
 
   // @@id([id])
   @@map("booking_request_details")

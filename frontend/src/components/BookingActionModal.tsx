@@ -158,6 +158,18 @@ export default function BookingActionModal({
               <span className="font-medium text-[#1C3A27]">{booking.treatment.name}</span>
             </div>
             <div className="flex justify-between border-b border-stone-300/50 pb-2">
+              <span className="text-stone-500 uppercase tracking-wider text-[10px]">Number of People:</span>
+              <span className="font-medium text-[#1C3A27]">{booking.number_of_people}</span>
+            </div>
+            <div className="flex justify-between border-b border-stone-300/50 pb-2">
+              <span className="text-stone-500 uppercase tracking-wider text-[10px]">Total Amount:</span>
+              <span className="font-semibold text-[#1C3A27]">
+                {booking.total_amount != null
+                  ? `RWF ${Number(booking.total_amount).toLocaleString()}`
+                  : `RWF ${(Number(booking.treatment.price) * booking.number_of_people).toLocaleString()}`}
+              </span>
+            </div>
+            <div className="flex justify-between border-b border-stone-300/50 pb-2">
               <span className="text-stone-500 uppercase tracking-wider text-[10px]">Scheduled Time:</span>
               <span className="font-medium text-[#1C3A27]">
                 {formatDateTime(booking.preferred_date, booking.preferred_time)}

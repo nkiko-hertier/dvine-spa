@@ -4,22 +4,8 @@ import Sidebar from "../../components/Sidebar";
 import DashboardHeader from "../../components/DashboardHeader";
 import { Search, ChevronLeft, ChevronRight, ArrowUpDown, Eye, Filter } from "lucide-react";
 import { useAdminCustomers } from "../../lib/helpers";
-import type { CustomerSource } from "../../types";
 
 type ClientFilter = "all" | "new" | "repeating";
-
-const SOURCE_OPTIONS: { value: CustomerSource; label: string }[] = [
-  { value: "instagram", label: "Instagram" },
-  { value: "facebook", label: "Facebook" },
-  { value: "tiktok", label: "TikTok" },
-  { value: "google", label: "Google" },
-  { value: "website", label: "Website" },
-  { value: "referral", label: "Referral" },
-  { value: "hotel", label: "Hotel" },
-  { value: "corporate", label: "Corporate" },
-  { value: "walk_in", label: "Walk-in" },
-  { value: "other", label: "Other" },
-];
 
 // Values must match backend/src/routes/admin/customers.ts's SORT_FIELDS
 // exactly (it validates against an allow-list of camelCase Prisma field
@@ -44,7 +30,6 @@ function formatDate(value: string | null): string {
 export default function Customers(): React.ReactElement {
   const [page, setPage] = useState<number>(1);
   const [search, setSearch] = useState<string>("");
-  const [source, setSource] = useState<string>("");
   const [hasPending, setHasPending] = useState<boolean>(false);
   const [clientFilter, setClientFilter] = useState<ClientFilter>("all");
   const [sort, setSort] = useState<string>("-customerSince");
@@ -54,7 +39,6 @@ export default function Customers(): React.ReactElement {
     page,
     limit: itemsPerPage,
     search: search || undefined,
-    source: (source || undefined) as CustomerSource | undefined,
     has_pending: hasPending || undefined,
     client_type: clientFilter === "all" ? undefined : clientFilter,
     sort,
@@ -68,14 +52,13 @@ export default function Customers(): React.ReactElement {
 
   const clearFilters = () => {
     setSearch("");
-    setSource("");
     setHasPending(false);
     setClientFilter("all");
     setSort("-customerSince");
     setPage(1);
   };
 
-  const hasActiveFilters = !!search || !!source || hasPending || clientFilter !== "all" || sort !== "-customerSince";
+  const hasActiveFilters = !!search || hasPending || clientFilter !== "all" || sort !== "-customerSince";
 
   return (
     <div className="min-h-screen bg-[#F8F6F0] flex font-['Work_Sans',sans-serif] text-[#1C3A27]">
@@ -111,22 +94,6 @@ export default function Customers(): React.ReactElement {
                 <Filter className="w-3.5 h-3.5" />
                 <span className="text-[10px] uppercase tracking-widest font-semibold">Filters</span>
               </div>
-
-              <select
-                value={source}
-                onChange={(e) => {
-                  setSource(e.target.value);
-                  resetToFirstPage();
-                }}
-                className="p-2.5 bg-[#F8F6F0] border border-stone-300 text-xs text-[#1C3A27] focus:outline-none focus:border-[#1C3A27]"
-              >
-                <option value="">All Sources</option>
-                {SOURCE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
 
               <label className="flex items-center gap-2 px-3 py-2.5 bg-[#F8F6F0] border border-stone-300 text-xs text-[#1C3A27] cursor-pointer select-none">
                 <input
@@ -217,7 +184,6 @@ export default function Customers(): React.ReactElement {
                       <th className="py-3 px-4 font-semibold">Client Name</th>
                       <th className="py-3 px-4 font-semibold">Phone</th>
                       <th className="py-3 px-4 font-semibold">Client Type</th>
-                      <th className="py-3 px-4 font-semibold">Source</th>
                       <th className="py-3 px-4 font-semibold">Client Since</th>
                       <th className="py-3 px-4 font-semibold">Visits</th>
                       <th className="py-3 px-4 font-semibold">Last Treatment</th>
@@ -240,9 +206,6 @@ export default function Customers(): React.ReactElement {
                           >
                             {(c.total_requests ?? 0) > 1 ? "Repeating" : "New"}
                           </span>
-                        </td>
-                        <td className="py-4 px-4 text-stone-600 capitalize">
-                          {c.source ? c.source.replace("_", " ") : "—"}
                         </td>
                         <td className="py-4 px-4 text-stone-600 font-light">{formatDate(c.customer_since)}</td>
                         <td className="py-4 px-4 text-stone-700">{c.total_visits ?? 0}</td>

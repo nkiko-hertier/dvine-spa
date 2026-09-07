@@ -12,6 +12,7 @@ import NotFound from "./pages/NotFound";
 import BookingConfirmation from "./pages/BookingConfirmation";
 import DashbordServices from "./pages/admin/Services";
 import DashboardBookings from "./pages/admin/Booking";
+import DashboardPayments from "./pages/admin/Payments";
 import DashboardCategories from "./pages/admin/Categories";
 import Customers from "./pages/admin/Customers";
 import CustomerDetail from "./pages/admin/CustomerDetail";
@@ -59,6 +60,14 @@ export default function App() {
                     element={
                         <ProtectedRoute>
                             <DashboardBookings />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/dashboard/payments"
+                    element={
+                        <ProtectedRoute>
+                            <DashboardPayments />
                         </ProtectedRoute>
                     }
                 />

@@ -38,6 +38,7 @@ export const ENDPOINTS = {
     dashboard: {
       getSummary: () => `/admin/dashboard/summary`,
       getStats: () => `/admin/dashboard/stats`,
+      getPayments: () => `/admin/dashboard/payments`,
     },
     categories: {
       getAllCategories: () => `/admin/categories`,

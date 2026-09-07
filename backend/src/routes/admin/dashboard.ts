@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { BookingStatus } from '@prisma/client';
+import { BookingStatus, Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma.js';
 import { ok } from '../../lib/response.js';
 import { parseDate } from '../../lib/queryParams.js';
@@ -80,6 +80,78 @@ adminDashboardRouter.get('/stats', async (_req, res, next) => {
       this_month_completed: thisMonthCompleted,
       top_treatment_30d: topTreatment,
       new_customers_30d: newCustomers30d,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * GET /admin/dashboard/payments?year=YYYY&month=M — realised revenue for one
+ * calendar month, split by booking origin:
+ *   - from_dvine       → booking has no source (staff keyed it into the
+ *                        dashboard; reference DV-…)
+ *   - from_pixelspring → booking carries a source (came through the public
+ *                        booking site; reference PX-…)
+ *
+ * "Realised" = only bookings with status `completed`, counted in the month
+ * they were completed (completed_at). Amounts come from the frozen
+ * booking_requests.total_amount, so historical figures don't move when a
+ * treatment is repriced.
+ */
+adminDashboardRouter.get('/payments', async (req, res, next) => {
+  try {
+    const now = new Date();
+    const yearRaw = Number(req.query.year);
+    const monthRaw = Number(req.query.month);
+    const year = Number.isInteger(yearRaw) && yearRaw >= 2000 && yearRaw <= 2100 ? yearRaw : now.getFullYear();
+    const month =
+      Number.isInteger(monthRaw) && monthRaw >= 1 && monthRaw <= 12 ? monthRaw : now.getMonth() + 1;
+
+    const periodStart = new Date(year, month - 1, 1, 0, 0, 0, 0);
+    const periodEnd = new Date(year, month, 1, 0, 0, 0, 0);
+
+    const baseWhere = {
+      status: BookingStatus.completed,
+      completedAt: { gte: periodStart, lt: periodEnd },
+    } as const;
+
+    const [dvine, pixelspring] = await Promise.all([
+      prisma.bookingRequest.aggregate({
+        where: { ...baseWhere, source: null },
+        _sum: { totalAmount: true, numberOfPeople: true },
+        _count: { _all: true },
+      }),
+      prisma.bookingRequest.aggregate({
+        where: { ...baseWhere, source: { not: null } },
+        _sum: { totalAmount: true, numberOfPeople: true },
+        _count: { _all: true },
+      }),
+    ]);
+
+    const bucket = (agg: typeof dvine) => ({
+      bookings: agg._count._all,
+      people: agg._sum.numberOfPeople ?? 0,
+      amount: (agg._sum.totalAmount ?? new Prisma.Decimal(0)).toFixed(2),
+    });
+
+    const dvineBucket = bucket(dvine);
+    const pixelspringBucket = bucket(pixelspring);
+
+    ok(res, {
+      year,
+      month,
+      period_start: periodStart,
+      period_end: periodEnd,
+      from_dvine: dvineBucket,
+      from_pixelspring: pixelspringBucket,
+      total: {
+        bookings: dvineBucket.bookings + pixelspringBucket.bookings,
+        people: dvineBucket.people + pixelspringBucket.people,
+        amount: (dvine._sum.totalAmount ?? new Prisma.Decimal(0))
+          .add(pixelspring._sum.totalAmount ?? new Prisma.Decimal(0))
+          .toFixed(2),
+      },
     });
   } catch (err) {
     next(err);

@@ -92,6 +92,16 @@ export async function downloadBookingConfirmationPdf(booking: BookingRequest): P
   y += 6;
   doc.text(`Price: RWF ${Number(booking.treatment.price).toLocaleString()}`, margin, y);
   y += 6;
+  doc.text(`Number of people: ${booking.number_of_people}`, margin, y);
+  y += 6;
+  {
+    const total =
+      booking.total_amount != null
+        ? Number(booking.total_amount)
+        : Number(booking.treatment.price) * booking.number_of_people;
+    doc.text(`Total: RWF ${total.toLocaleString()}`, margin, y);
+    y += 6;
+  }
   doc.text(`Duration: ${booking.treatment.duration_minutes} minutes`, margin, y);
   y += 6;
   if (booking.treatment.category_name) {

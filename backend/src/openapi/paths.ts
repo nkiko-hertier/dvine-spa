@@ -3,7 +3,7 @@ import { registry, successEnvelope, successListEnvelope, paginationQuerySchema, 
 import {
   categorySchema, treatmentSchema, customerSchema, customerSummarySchema,
   bookingRequestSchema, bookingRequestCreateResponseSchema, bookingLookupResponseSchema,
-  auditLogSchema, dailySummarySchema, dashboardStatsSchema, staffSchema,
+  auditLogSchema, dailySummarySchema, dashboardStatsSchema, paymentReportSchema, staffSchema,
 } from './schemas.js';
 import {
   categoryCreateSchema, categoryUpdateSchema, treatmentCreateSchema, treatmentUpdateSchema,
@@ -256,6 +256,12 @@ registry.registerPath({
 registry.registerPath({
   method: 'get', path: '/admin/dashboard/stats', tags: ['Admin / Dashboard'], security: bearerAuth,
   responses: { 200: okJson('Point-in-time KPIs', dashboardStatsSchema), ...commonErrorResponses },
+});
+registry.registerPath({
+  method: 'get', path: '/admin/dashboard/payments', tags: ['Admin / Dashboard'], security: bearerAuth,
+  summary: 'Realised revenue for one calendar month (completed bookings, counted by completed_at), split D\'Vine (DV-) vs PixelSpring (PX-). Defaults to the current month.',
+  request: { query: z.object({ year: z.string().optional(), month: z.string().optional().openapi({ description: '1-12' }) }) },
+  responses: { 200: okJson('Payment report', paymentReportSchema), ...commonErrorResponses },
 });
 
 // ------------------------------------------------------------

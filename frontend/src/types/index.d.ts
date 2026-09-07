@@ -282,8 +282,12 @@ export interface BookingRequest {
   confirmed_date: string | null;
   confirmed_time: string | null;
   channel: CustomerSource;
-  /** Derived: "from_us" = customer has no source (staff-entered in the
-   * dashboard); "from_pixelspring" = has a source (public booking site). */
+  /** Guests covered by this booking (>= 1). */
+  number_of_people: number;
+  /** treatment price * number_of_people, frozen at creation. Decimal string, e.g. "50000.00". */
+  total_amount: string | null;
+  /** Frozen per booking: "from_us" = no source (staff-entered, reference DV-…);
+   * "from_pixelspring" = has a source (public booking site, reference PX-…). */
   origin: BookingOrigin;
   staff_notes: string | null;
   cancellation_reason: string | null;
@@ -308,6 +312,8 @@ export interface BookingRequestCreateInput {
   preferred_date: string; // ISO date string, e.g. "2026-09-01"
   preferred_time: string; // "HH:MM", 24h
   channel?: CustomerSource;
+  /** Guests covered by this booking. Defaults to 1 server-side. */
+  number_of_people?: number;
   notes?: string;
 }
 
@@ -366,6 +372,8 @@ export interface BookingRequestCreateResult {
   };
   preferred_date: string;
   preferred_time: string;
+  number_of_people: number;
+  total_amount: string | null;
   created_at: string;
 }
 
@@ -463,6 +471,31 @@ export interface DashboardStats {
   this_month_completed: number;
   top_treatment_30d: TopTreatment | null;
   new_customers_30d: number;
+}
+
+/** One origin bucket in the payment report — amounts are decimal strings. */
+export interface PaymentBucket {
+  bookings: number;
+  people: number;
+  amount: string;
+}
+
+/** GET /admin/dashboard/payments — realised revenue for one month, split by origin. */
+export interface PaymentReport {
+  year: number;
+  month: number; // 1-12
+  period_start: string;
+  period_end: string;
+  /** Bookings with no source — staff-entered in the dashboard (reference DV-…). */
+  from_dvine: PaymentBucket;
+  /** Bookings with a source — came through the public booking site (reference PX-…). */
+  from_pixelspring: PaymentBucket;
+  total: PaymentBucket;
+}
+
+export interface PaymentReportParams {
+  year: number;
+  month: number; // 1-12
 }
 
 // ---------------------------------------------------------------------------

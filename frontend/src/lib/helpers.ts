@@ -66,6 +66,8 @@ import type {
   DailyRequestsSummary,
   DashboardStats,
   DashboardSummaryParams,
+  PaymentReport,
+  PaymentReportParams,
 } from "../types";
 
 // A couple of query options callers might reasonably want to override
@@ -299,6 +301,24 @@ export function useDashboardStats(options?: ExtraQueryOptions<DashboardStats>) {
     queryFn: async () => {
       const { data } = await apiClient.get<ApiSuccess<DashboardStats>>(
         ENDPOINTS.admin.dashboard.getStats()
+      );
+      return data.data;
+    },
+    ...options,
+  });
+}
+
+/** GET /admin/dashboard/payments — realised revenue for one month, D'Vine vs PixelSpring. */
+export function usePaymentReport(
+  params: PaymentReportParams,
+  options?: ExtraQueryOptions<PaymentReport>
+) {
+  return useQuery({
+    queryKey: ["admin", "dashboard", "payments", params],
+    queryFn: async () => {
+      const { data } = await apiClient.get<ApiSuccess<PaymentReport>>(
+        ENDPOINTS.admin.dashboard.getPayments(),
+        { params }
       );
       return data.data;
     },

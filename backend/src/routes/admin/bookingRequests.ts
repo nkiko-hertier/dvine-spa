@@ -67,11 +67,12 @@ adminBookingRequestsRouter.get('/', async (req, res, next) => {
       // customerId (exact match) takes precedence if both are somehow passed.
       ...(customerId ? { customerId } : clientTypeCustomerIds ? { customerId: { in: clientTypeCustomerIds } } : {}),
       ...(channel ? { channel } : {}),
-      // Origin: "from us" = the customer has no acquisition source (staff
+      // Origin: "from us" = the booking has no acquisition source (staff
       // keyed it into the dashboard); "from PixelSpring" = a source is set,
-      // so it came through the public booking site.
+      // so it came through the public booking site. Frozen per-booking on
+      // booking_requests.source at creation time.
       ...(origin
-        ? { customer: { source: origin === 'from_us' ? null : { not: null } } }
+        ? { source: origin === 'from_us' ? null : { not: null } }
         : {}),
       ...(dateFrom || dateTo
         ? { preferredDate: { ...(dateFrom ? { gte: dateFrom } : {}), ...(dateTo ? { lte: dateTo } : {}) } }
@@ -217,8 +218,10 @@ function serializeBookingRequest(b: BookingRequestWithRelations) {
     confirmed_date: b.confirmedDate,
     confirmed_time: b.confirmedTime,
     channel: b.channel,
-    // Derived origin — see the `origin` list filter above.
-    origin: b.customer.source ? ('from_pixelspring' as const) : ('from_us' as const),
+    number_of_people: b.numberOfPeople,
+    total_amount: b.totalAmount?.toFixed(2) ?? null,
+    // Frozen per-booking origin — see the `origin` list filter above.
+    origin: b.source ? ('from_pixelspring' as const) : ('from_us' as const),
     staff_notes: b.staffNotes,
     cancellation_reason: b.cancellationReason,
     created_at: b.createdAt,

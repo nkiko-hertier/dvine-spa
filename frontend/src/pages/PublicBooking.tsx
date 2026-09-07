@@ -5,7 +5,6 @@ import "aos/dist/aos.css";
 import { Sparkles, Clock3, CheckCircle2, RotateCcw, MessageCircle, X } from "lucide-react";
 import { usePublicCategories, usePublicTreatments, useCreateBookingRequest } from "../lib/helpers";
 import { TIME_OPTIONS } from "../lib/bookingStatus";
-import type { CustomerSource } from "../types";
 
 /**
  * Stand-in public booking page, linked directly (no nav) while the real
@@ -57,18 +56,8 @@ function newIdempotencyKey(): string {
     : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-/** Local "how did you hear about us" options — mirrors the CustomerSource enum. */
-const SOURCE_OPTIONS: { value: CustomerSource; label: string }[] = [
-  { value: "instagram", label: "Instagram" },
-  { value: "facebook", label: "Facebook" },
-  { value: "tiktok", label: "TikTok" },
-  { value: "google", label: "Google search" },
-  { value: "referral", label: "A friend told me" },
-  { value: "hotel", label: "My hotel" },
-  { value: "corporate", label: "Corporate partner" },
-  { value: "walk_in", label: "Walked by" },
-  { value: "other", label: "Other" },
-];
+/** Party-size cap for a single online booking — larger groups call the spa. */
+const MAX_PEOPLE = 10;
 
 function addMinutes(time: string, minutes: number): string {
   const [h, m] = time.split(":").map(Number);
@@ -104,7 +93,7 @@ export default function PublicBooking(): React.ReactElement {
   const [treatmentId, setTreatmentId] = useState<string>("");
   const [date, setDate] = useState<string>("");
   const [time, setTime] = useState<string>("");
-  const [source, setSource] = useState<CustomerSource | "">("");
+  const [numberOfPeople, setNumberOfPeople] = useState<number>(1);
   const [notes, setNotes] = useState<string>("");
   const [formError, setFormError] = useState<string>("");
 
@@ -162,11 +151,11 @@ export default function PublicBooking(): React.ReactElement {
           preferred_date: date,
           preferred_time: time,
           channel: "website",
-          // Always tag a source (defaulting to "website") so this booking is
-          // correctly attributed as a public-site request in the dashboard's
-          // "from us / from PixelSpring" origin split, rather than reading
-          // as staff-entered just because the visitor skipped the question.
-          source: source || "website",
+          number_of_people: numberOfPeople,
+          // Every request from the public site is tagged "website" so the
+          // dashboard attributes it as a PixelSpring booking (reference PX-…)
+          // in the "from us / from PixelSpring" origin split.
+          source: "website",
           notes: notes.trim() || undefined,
         },
         idempotencyKey: idempotencyKeyRef.current,
@@ -196,6 +185,7 @@ export default function PublicBooking(): React.ReactElement {
     setCategoryId("");
     setDate("");
     setTime("");
+    setNumberOfPeople(1);
     setNotes("");
     setFormError("");
     idempotencyKeyRef.current = newIdempotencyKey();
@@ -469,21 +459,24 @@ export default function PublicBooking(): React.ReactElement {
             {/* Extra */}
             <div className="space-y-4">
               <div className="space-y-1">
-                <label className="block text-[10px] uppercase tracking-wider text-stone-600 font-semibold">
-                  How did you hear about us? <span className="normal-case text-stone-400">(optional)</span>
+                <label htmlFor="number_of_people" className="block text-[10px] uppercase tracking-wider text-stone-600 font-semibold">
+                  Number of people
                 </label>
                 <select
-                  value={source}
-                  onChange={(e) => setSource(e.target.value as CustomerSource)}
+                  id="number_of_people"
+                  value={numberOfPeople}
+                  onChange={(e) => setNumberOfPeople(Number(e.target.value))}
                   className="w-full p-2.5 bg-[#F8F6F0] border border-stone-300 text-xs focus:outline-none focus:border-[#1C3A27]"
                 >
-                  <option value="">Prefer not to say</option>
-                  {SOURCE_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
+                  {Array.from({ length: MAX_PEOPLE }, (_, i) => i + 1).map((n) => (
+                    <option key={n} value={n}>
+                      {n} {n === 1 ? "person" : "people"}
                     </option>
                   ))}
                 </select>
+                <p className="text-[10px] text-stone-400 font-light">
+                  Booking for a bigger group? Call us and we'll arrange it.
+                </p>
               </div>
               <div className="space-y-1">
                 <label className="block text-[10px] uppercase tracking-wider text-stone-600 font-semibold">
@@ -530,6 +523,11 @@ export default function PublicBooking(): React.ReactElement {
                 )}
                 <p className="text-sm text-stone-600 font-light">
                   RWF {Number(selectedTreatment.price).toLocaleString()} · {selectedTreatment.duration_minutes} min
+                </p>
+                <p className="text-sm font-medium text-[#1C3A27] pt-1">
+                  {numberOfPeople > 1 && `${numberOfPeople} people · `}
+                  Estimated total RWF{" "}
+                  {(Number(selectedTreatment.price) * numberOfPeople).toLocaleString()}
                 </p>
               </div>
             ) : (

@@ -70,6 +70,7 @@ export default function DashboardBookings(): React.ReactElement {
   const [newTreatmentId, setNewTreatmentId] = useState<string>("");
   const [newDate, setNewDate] = useState<string>("");
   const [newTime, setNewTime] = useState<string>("");
+  const [newPeople, setNewPeople] = useState<number>(1);
   const [newNotes, setNewNotes] = useState<string>("");
   const [createError, setCreateError] = useState<string>("");
 
@@ -106,6 +107,7 @@ export default function DashboardBookings(): React.ReactElement {
         preferred_date: newDate,
         preferred_time: newTime,
         channel: "website",
+        number_of_people: newPeople,
         notes: newNotes || undefined,
       });
       queryClient.invalidateQueries({ queryKey: ["admin", "bookingRequests", "list"] });
@@ -119,6 +121,7 @@ export default function DashboardBookings(): React.ReactElement {
       setNewTreatmentId("");
       setNewDate("");
       setNewTime("");
+      setNewPeople(1);
       setNewNotes("");
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { error?: { message?: string; details?: { field?: string; issue: string }[] } } } };
@@ -234,6 +237,7 @@ export default function DashboardBookings(): React.ReactElement {
                       <th className="py-3 px-4 font-semibold">Client Type</th>
                       <th className="py-3 px-4 font-semibold">Origin</th>
                       <th className="py-3 px-4 font-semibold">Service</th>
+                      <th className="py-3 px-4 font-semibold">Amount</th>
                       <th className="py-3 px-4 font-semibold">Date & Time</th>
                       <th className="py-3 px-4 font-semibold">Status</th>
                       <th className="py-3 px-4 font-semibold text-right">Actions</th>
@@ -264,7 +268,19 @@ export default function DashboardBookings(): React.ReactElement {
                             {ORIGIN_LABEL[booking.origin]}
                           </span>
                         </td>
-                        <td className="py-4 px-4 text-stone-700">{booking.treatment.name}</td>
+                        <td className="py-4 px-4 text-stone-700">
+                          {booking.treatment.name}
+                          {booking.number_of_people > 1 && (
+                            <span className="block text-[10px] text-stone-500">
+                              {booking.number_of_people} people
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-4 px-4 text-stone-700 whitespace-nowrap">
+                          {booking.total_amount != null
+                            ? `RWF ${Number(booking.total_amount).toLocaleString()}`
+                            : "—"}
+                        </td>
                         <td className="py-4 px-4 text-stone-600 font-light">
                           {formatDateTime(booking.preferred_date, booking.preferred_time)}
                         </td>
@@ -443,6 +459,19 @@ export default function DashboardBookings(): React.ReactElement {
                       <option value="18:00">06:00 PM</option>
                     </select>
                   </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-[10px] uppercase tracking-wider text-stone-600 font-semibold">Number of People</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={20}
+                    value={newPeople}
+                    onChange={(e) => setNewPeople(Math.max(1, Number(e.target.value) || 1))}
+                    className="w-full p-2.5 bg-[#F8F6F0] border border-stone-300 text-xs text-[#1C3A27] focus:outline-none focus:border-[#1C3A27]"
+                  />
+                  <p className="text-[9px] text-stone-500">Total charged = this &times; the service price.</p>
                 </div>
 
                 <div className="space-y-1">

@@ -75,6 +75,9 @@ export const bookingRequestCreateSchema = z.object({
   preferred_date: z.string().refine((v) => !Number.isNaN(new Date(v).getTime()), 'Invalid date.'),
   preferred_time: timeStringSchema,
   channel: customerSourceSchema.optional(),
+  // How many guests this one booking covers. Defaults to 1; total_amount is
+  // treatment price * number_of_people, computed server-side.
+  number_of_people: z.number().int().min(1).max(20).optional(),
   notes: z.string().optional(),
 });
 

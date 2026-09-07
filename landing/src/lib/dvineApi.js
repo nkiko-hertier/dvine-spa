@@ -120,10 +120,14 @@ function shapeBooking(d = {}) {
     preferred_date: d.preferred_date,
     preferred_time: d.preferred_time,
     channel: d.channel || 'website',
+    // Always "website" from the public site so the dashboard attributes this
+    // as a PixelSpring booking (reference PX-…) in its origin split.
+    source: 'website',
   };
   if (d.whatsapp_number && d.whatsapp_number.trim()) out.whatsapp_number = d.whatsapp_number.trim();
   if (d.email && d.email.trim()) out.email = d.email.trim();
-  if (d.source) out.source = d.source;
+  const people = Number(d.number_of_people);
+  if (Number.isInteger(people) && people > 1) out.number_of_people = people;
   if (d.notes) out.notes = String(d.notes).slice(0, 2000);
   return out;
 }

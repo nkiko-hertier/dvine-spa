@@ -68,6 +68,9 @@ bookingRequestsRouter.post('/', bookingCreateLimiter, async (req, res, next) => 
       },
     });
 
+    const numberOfPeople = input.number_of_people ?? 1;
+    const totalAmount = treatment.price.mul(numberOfPeople);
+
     const bookingRequest = await prisma.bookingRequest.create({
       data: {
         customerId: customer.id,
@@ -75,6 +78,13 @@ bookingRequestsRouter.post('/', bookingCreateLimiter, async (req, res, next) => 
         preferredDate,
         preferredTime: timeStringToDate(input.preferred_time),
         channel: input.channel ?? 'website',
+        numberOfPeople,
+        totalAmount,
+        // Frozen per-booking origin marker. A source here (the public site
+        // always sends "website") => PixelSpring; absent => staff-entered
+        // in the dashboard. Drives the PX-/DV- reference prefix (DB trigger)
+        // and the payment report split.
+        source: input.source ?? null,
       },
       include: { customer: true, treatment: true },
     });
@@ -93,6 +103,8 @@ bookingRequestsRouter.post('/', bookingCreateLimiter, async (req, res, next) => 
         },
         preferred_date: bookingRequest.preferredDate,
         preferred_time: input.preferred_time,
+        number_of_people: bookingRequest.numberOfPeople,
+        total_amount: bookingRequest.totalAmount?.toFixed(2) ?? null,
         created_at: bookingRequest.createdAt,
       },
     };

@@ -100,9 +100,14 @@ export const bookingRequestSchema = registry.register(
     confirmed_date: z.string().nullable(),
     confirmed_time: z.string().nullable(),
     channel: customerSourceSchema,
+    number_of_people: z.number().int().openapi({ description: 'Guests covered by this booking (>= 1).' }),
+    total_amount: z.string().nullable().openapi({
+      example: '50000.00',
+      description: 'treatment price * number_of_people, frozen at creation.',
+    }),
     origin: z.enum(['from_us', 'from_pixelspring']).openapi({
       description:
-        'Derived: "from_us" when the customer has no acquisition source (staff-entered in the dashboard); "from_pixelspring" when a source is set (came through the public booking site).',
+        'Frozen per booking: "from_us" when the booking has no acquisition source (staff-entered in the dashboard, reference DV-…); "from_pixelspring" when a source is set (came through the public booking site, reference PX-…).',
     }),
     staff_notes: z.string().nullable(),
     cancellation_reason: z.string().nullable(),
@@ -119,6 +124,8 @@ export const bookingRequestCreateResponseSchema = registry.register(
     treatment: z.object({ id: z.string().uuid(), name: z.string(), price: z.string(), duration_minutes: z.number().int() }),
     preferred_date: z.string(),
     preferred_time: z.string(),
+    number_of_people: z.number().int(),
+    total_amount: z.string().nullable(),
     created_at: z.string().datetime(),
   }),
 );
@@ -173,6 +180,25 @@ export const dashboardStatsSchema = registry.register(
     this_month_completed: z.number().int(),
     top_treatment_30d: z.object({ id: z.string().uuid(), name: z.string(), bookings: z.number().int() }).nullable(),
     new_customers_30d: z.number().int(),
+  }),
+);
+
+const paymentBucketSchema = z.object({
+  bookings: z.number().int(),
+  people: z.number().int(),
+  amount: z.string().openapi({ example: '150000.00' }),
+});
+
+export const paymentReportSchema = registry.register(
+  'PaymentReport',
+  z.object({
+    year: z.number().int(),
+    month: z.number().int().openapi({ description: '1-12' }),
+    period_start: z.string().datetime(),
+    period_end: z.string().datetime(),
+    from_dvine: paymentBucketSchema.openapi({ description: 'Bookings with no source — staff-entered, reference DV-…' }),
+    from_pixelspring: paymentBucketSchema.openapi({ description: 'Bookings with a source — public booking site, reference PX-…' }),
+    total: paymentBucketSchema,
   }),
 );
 

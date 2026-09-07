@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Send, Loader2, CalendarCheck, Info } from 'lucide-react';
-import { dvineApi, formatPrice, formatDuration, statusLabel, SOURCE_LABELS } from '@/lib/dvineApi';
+import { dvineApi, formatPrice, formatDuration, statusLabel } from '@/lib/dvineApi';
 
-const SOURCES = Object.keys(SOURCE_LABELS);
+// Larger groups than this call the spa directly.
+const MAX_PEOPLE = 10;
 
 const EMPTY = {
   full_name: '',
@@ -12,7 +13,7 @@ const EMPTY = {
   treatment_id: '',
   preferred_date: '',
   preferred_time: '',
-  source: '',
+  number_of_people: 1,
   notes: '',
 };
 
@@ -24,6 +25,13 @@ export default function BookingForm({ selectedTreatment }) {
   const [fieldErrors, setFieldErrors] = useState({});
   const [formError, setFormError] = useState(null);
   const [confirmation, setConfirmation] = useState(null);
+
+  // The treatment currently picked in the dropdown, resolved from the loaded
+  // groups — used to show an estimated total for the party size.
+  const chosenTreatment =
+    (groups || [])
+      .flatMap((g) => g.treatments)
+      .find((t) => t.id === form.treatment_id) || null;
 
   // Load all treatments for the dropdown, grouped by category.
   useEffect(() => {
@@ -160,6 +168,12 @@ export default function BookingForm({ selectedTreatment }) {
               label="Date"
               value={confirmation.preferred_date ? new Date(confirmation.preferred_date).toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric' }) : ''}
             />
+            {confirmation.number_of_people != null && (
+              <Row label="People" value={String(confirmation.number_of_people)} />
+            )}
+            {confirmation.total_amount != null && (
+              <Row label="Estimated total" value={formatPrice(confirmation.total_amount)} strong />
+            )}
           </div>
         </div>
         <p className="text-xs mt-5" style={{ color: 'rgba(253,251,247,0.4)' }}>
@@ -241,30 +255,32 @@ export default function BookingForm({ selectedTreatment }) {
         {field('preferred_time')}
       </div>
 
-      {/* Source (how did you hear) */}
+      {/* Number of people */}
       <div>
-        <label htmlFor="source" className="block text-xs tracking-[0.15em] uppercase mb-2" style={labelStyle}>
-          How did you hear about us? <span style={{ color: 'rgba(253,251,247,0.3)' }}>(optional)</span>
+        <label htmlFor="number_of_people" className="block text-xs tracking-[0.15em] uppercase mb-2" style={labelStyle}>
+          Number of People
         </label>
         <select
-          id="source"
-          name="source"
-          value={form.source}
+          id="number_of_people"
+          name="number_of_people"
+          value={form.number_of_people}
           onChange={handleChange}
           className="w-full px-4 py-3.5 text-sm outline-none transition-all duration-200"
-          style={{ ...inputStyle, color: form.source ? '#FDFBF7' : 'rgba(253,251,247,0.4)' }}
+          style={{ ...inputStyle, color: '#FDFBF7' }}
           onFocus={(e) => (e.target.style.borderColor = '#C5A386')}
           onBlur={(e) => (e.target.style.borderColor = 'rgba(253,251,247,0.12)')}
         >
-          <option value="" disabled style={{ color: '#1A1F16' }}>
-            Select...
-          </option>
-          {SOURCES.map((s) => (
-            <option key={s} value={s} style={{ color: '#1A1F16' }}>
-              {SOURCE_LABELS[s]}
+          {Array.from({ length: MAX_PEOPLE }, (_, i) => i + 1).map((n) => (
+            <option key={n} value={n} style={{ color: '#1A1F16' }}>
+              {n} {n === 1 ? 'person' : 'people'}
             </option>
           ))}
         </select>
+        {chosenTreatment && (
+          <p className="mt-1.5 text-xs" style={{ color: 'rgba(253,251,247,0.5)' }}>
+            Estimated total {formatPrice(Number(chosenTreatment.price) * Number(form.number_of_people || 1))}
+          </p>
+        )}
       </div>
 
       <div>
