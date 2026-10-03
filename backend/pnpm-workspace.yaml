@@ -2,3 +2,9 @@
 # via: pnpm install --config.dangerously-allow-all-builds=true
 # (see vercel.json / Dockerfile). An onlyBuiltDependencies allowlist here is
 # ignored by pnpm 11 under --frozen-lockfile, so it is not used.
+
+allowBuilds:
+  '@prisma/engines': set this to true or false
+  '@scarf/scarf': set this to true or false
+  esbuild: set this to true or false
+  prisma: set this to true or false
