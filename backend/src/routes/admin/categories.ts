@@ -7,12 +7,13 @@ import { parseOrThrow } from '../../lib/validate.js';
 import { asString, parseSort } from '../../lib/queryParams.js';
 import { categoryCreateSchema, categoryUpdateSchema } from '../../schemas/index.js';
 import { serializeCategory } from '../../lib/serializers.js';
+import { categoryHasBookings } from '../../lib/treatmentUsage.js';
 
 export const adminCategoriesRouter = Router();
 
 const SORT_FIELDS = ['displayOrder', 'name', 'createdAt'] as const;
 
-/** GET /admin/categories — includes inactive rows unless ?is_active is set */
+/** GET /admin/categories, includes inactive rows unless ?is_active is set */
 adminCategoriesRouter.get('/', async (req, res, next) => {
   try {
     const { page, limit, offset } = parsePagination(req.query);
@@ -90,10 +91,17 @@ adminCategoriesRouter.patch('/:id', async (req, res, next) => {
           ...(input.cover_image_url !== undefined ? { coverImageUrl: input.cover_image_url } : {}),
           ...(input.display_order !== undefined ? { displayOrder: input.display_order } : {}),
           ...(input.is_active !== undefined ? { isActive: input.is_active } : {}),
+          // The DB trigger bumps this on every UPDATE; set it here as well so
+          // the public catalog version (lib/catalogVersion.ts) moves even on
+          // a database restored without the trigger.
+          updatedAt: new Date(),
         },
       });
       if (input.is_active === false && cascade) {
-        await tx.treatment.updateMany({ where: { categoryId: existing.id }, data: { isActive: false } });
+        await tx.treatment.updateMany({
+          where: { categoryId: existing.id },
+          data: { isActive: false, updatedAt: new Date() },
+        });
       }
       return updated;
     });
@@ -110,7 +118,7 @@ adminCategoriesRouter.patch('/:id', async (req, res, next) => {
  * Hard delete when none of this category's treatments have ever been
  * booked (also removes those never-booked treatments, so nothing is left
  * dangling with a null category_id). Otherwise falls back to a soft
- * delete (isActive=false) — booking_requests.treatment_id is ON DELETE
+ * delete (isActive=false), booking_requests.treatment_id is ON DELETE
  * RESTRICT, so a hard delete would fail anyway once a booking exists.
  */
 adminCategoriesRouter.delete('/:id', async (req, res, next) => {
@@ -118,11 +126,9 @@ adminCategoriesRouter.delete('/:id', async (req, res, next) => {
     const existing = await prisma.category.findUnique({ where: { id: req.params.id } });
     if (!existing) throw AppError.notFound('Category not found.');
 
-    const bookingCount = await prisma.bookingRequest.count({
-      where: { treatment: { categoryId: existing.id } },
-    });
-
-    if (bookingCount === 0) {
+    // Counts bookings that use a treatment of this category as the primary
+    // service or as an extra service on a multi-service booking.
+    if (!(await categoryHasBookings(existing.id))) {
       await prisma.$transaction([
         prisma.treatment.deleteMany({ where: { categoryId: existing.id } }),
         prisma.category.delete({ where: { id: existing.id } }),
@@ -131,7 +137,10 @@ adminCategoriesRouter.delete('/:id', async (req, res, next) => {
       return;
     }
 
-    const category = await prisma.category.update({ where: { id: existing.id }, data: { isActive: false } });
+    const category = await prisma.category.update({
+      where: { id: existing.id },
+      data: { isActive: false, updatedAt: new Date() },
+    });
     ok(res, serializeCategory(category));
   } catch (err) {
     next(err);

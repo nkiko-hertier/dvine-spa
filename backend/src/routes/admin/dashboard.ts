@@ -4,10 +4,11 @@ import { prisma } from '../../lib/prisma.js';
 import { ok } from '../../lib/response.js';
 import { parseDate } from '../../lib/queryParams.js';
 import { serializeDailySummary } from '../../lib/serializers.js';
+import { topTreatmentSince } from '../../lib/treatmentUsage.js';
 
 export const adminDashboardRouter = Router();
 
-/** GET /admin/dashboard/summary — backed by daily_requests_summary — API_DOCUMENTATION.md §11 */
+/** GET /admin/dashboard/summary, backed by daily_requests_summary, API_DOCUMENTATION.md §11 */
 adminDashboardRouter.get('/summary', async (req, res, next) => {
   try {
     const thirtyDaysAgo = new Date();
@@ -26,7 +27,7 @@ adminDashboardRouter.get('/summary', async (req, res, next) => {
   }
 });
 
-/** GET /admin/dashboard/stats — point-in-time KPIs — API_DOCUMENTATION.md §11 */
+/** GET /admin/dashboard/stats, point-in-time KPIs, API_DOCUMENTATION.md §11 */
 adminDashboardRouter.get('/stats', async (_req, res, next) => {
   try {
     const now = new Date();
@@ -48,30 +49,16 @@ adminDashboardRouter.get('/stats', async (_req, res, next) => {
       thisWeekConfirmed,
       thisMonthCompleted,
       newCustomers30d,
-      topTreatmentRows,
+      topTreatment,
     ] = await Promise.all([
       prisma.bookingRequest.count({ where: { status: BookingStatus.new_request } }),
       prisma.bookingRequest.count({ where: { preferredDate: { gte: startOfToday, lt: endOfToday } } }),
       prisma.bookingRequest.count({ where: { status: BookingStatus.confirmed, confirmedAt: { gte: startOfWeek } } }),
       prisma.bookingRequest.count({ where: { status: BookingStatus.completed, completedAt: { gte: startOfMonth } } }),
       prisma.customer.count({ where: { customerSince: { gte: thirtyDaysAgo } } }),
-      prisma.bookingRequest.groupBy({
-        by: ['treatmentId'],
-        where: { createdAt: { gte: thirtyDaysAgo } },
-        _count: { treatmentId: true },
-        orderBy: { _count: { treatmentId: 'desc' } },
-        take: 1,
-      }),
+      // Counts every service on a booking, not just the primary one.
+      topTreatmentSince(thirtyDaysAgo),
     ]);
-
-    let topTreatment = null;
-    const topRow = topTreatmentRows[0];
-    if (topRow) {
-      const treatment = await prisma.treatment.findUnique({ where: { id: topRow.treatmentId } });
-      if (treatment) {
-        topTreatment = { id: treatment.id, name: treatment.name, bookings: topRow._count.treatmentId };
-      }
-    }
 
     ok(res, {
       pending_requests: pendingRequests,
@@ -87,7 +74,7 @@ adminDashboardRouter.get('/stats', async (_req, res, next) => {
 });
 
 /**
- * GET /admin/dashboard/payments?year=YYYY&month=M — realised revenue for one
+ * GET /admin/dashboard/payments?year=YYYY&month=M, realised revenue for one
  * calendar month, split by booking origin:
  *   - from_dvine       → booking has no source (staff keyed it into the
  *                        dashboard; reference DV-…)

@@ -7,12 +7,13 @@ import { parseOrThrow } from '../../lib/validate.js';
 import { asString, parseSort } from '../../lib/queryParams.js';
 import { customerUpdateSchema, customerSourceSchema, clientTypeSchema } from '../../schemas/index.js';
 import { serializeCustomer, serializeCustomerSummary } from '../../lib/serializers.js';
+import { mostCommonTreatmentForCustomer } from '../../lib/treatmentUsage.js';
 
 export const adminCustomersRouter = Router();
 
 const SORT_FIELDS = ['customerSince', 'fullName', 'lastActivity'] as const;
 
-/** GET /admin/customers — backed by the customer_summary view — §7 */
+/** GET /admin/customers, backed by the customer_summary view, §7 */
 adminCustomersRouter.get('/', async (req, res, next) => {
   try {
     const { page, limit, offset } = parsePagination(req.query);
@@ -49,33 +50,55 @@ adminCustomersRouter.get('/', async (req, res, next) => {
   }
 });
 
-/** GET /admin/customers/:id — summary + notes + recent bookings */
+/** GET /admin/customers/:id, summary + notes + recent bookings */
 adminCustomersRouter.get('/:id', async (req, res, next) => {
   try {
     // Change findUnique -> findFirst
     const summary = await prisma.customerSummary.findFirst({ where: { id: req.params.id } });
     if (!summary) throw AppError.notFound('Customer not found.');
 
-    const [customer, recentBookings] = await Promise.all([
+    const [customer, mostCommon, recentBookings] = await Promise.all([
       prisma.customer.findUnique({ where: { id: req.params.id } }),
+      mostCommonTreatmentForCustomer(req.params.id),
       prisma.bookingRequest.findMany({
         where: { customerId: req.params.id },
         orderBy: { createdAt: 'desc' },
         take: 10,
-        include: { treatment: true },
+        include: {
+          treatment: true,
+          treatments: { include: { treatment: true }, orderBy: { displayOrder: 'asc' } },
+        },
       }),
     ]);
 
     ok(res, {
       ...serializeCustomerSummary(summary),
       notes: customer?.notes ?? null,
-      recent_bookings: recentBookings.map((b) => ({
-        id: b.id,
-        request_reference: b.requestReference,
-        treatment_name: b.treatment.name,
-        preferred_date: b.preferredDate,
-        status: b.status,
-      })),
+      email: customer?.email ?? null,
+      // Across every service on every booking (not just the 10 shown below);
+      // pre-fills the dashboard's "Add Appointment" shortcut.
+      most_common_treatment: mostCommon
+        ? {
+            id: mostCommon.id,
+            name: mostCommon.name,
+            price: Number(mostCommon.price).toFixed(2),
+            duration_minutes: mostCommon.duration_minutes,
+            times_booked: mostCommon.times,
+          }
+        : null,
+      recent_bookings: recentBookings.map((b) => {
+        const names = (b.treatments ?? [])
+          .map((row) => row.treatment.name)
+          .filter(Boolean);
+        return {
+          id: b.id,
+          request_reference: b.requestReference,
+          treatment_id: b.treatmentId,
+          treatment_name: names.length ? names.join(', ') : b.treatment.name,
+          preferred_date: b.preferredDate,
+          status: b.status,
+        };
+      }),
     });
   } catch (err) {
     next(err);
@@ -83,7 +106,7 @@ adminCustomersRouter.get('/:id', async (req, res, next) => {
 });
 
 /**
- * PATCH /admin/customers/:id — phoneNumber intentionally not editable here;
+ * PATCH /admin/customers/:id, phoneNumber intentionally not editable here;
  * it's the dedupe key (§7). A future /merge endpoint would handle that.
  */
 adminCustomersRouter.patch('/:id', async (req, res, next) => {

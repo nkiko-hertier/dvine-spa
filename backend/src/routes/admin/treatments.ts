@@ -7,12 +7,13 @@ import { parseOrThrow } from '../../lib/validate.js';
 import { asString, parseSort } from '../../lib/queryParams.js';
 import { treatmentCreateSchema, treatmentUpdateSchema } from '../../schemas/index.js';
 import { serializeTreatment } from '../../lib/serializers.js';
+import { treatmentHasBookings } from '../../lib/treatmentUsage.js';
 
 export const adminTreatmentsRouter = Router();
 
 const SORT_FIELDS = ['displayOrder', 'name', 'price', 'durationMinutes', 'createdAt'] as const;
 
-/** GET /admin/treatments — includes inactive rows unless ?is_active is set */
+/** GET /admin/treatments, includes inactive rows unless ?is_active is set */
 adminTreatmentsRouter.get('/', async (req, res, next) => {
   try {
     const { page, limit, offset } = parsePagination(req.query);
@@ -88,6 +89,10 @@ adminTreatmentsRouter.patch('/:id', async (req, res, next) => {
       ...(input.recommended_for !== undefined ? { recommendedFor: input.recommended_for } : {}),
       ...(input.display_order !== undefined ? { displayOrder: input.display_order } : {}),
       ...(input.is_active !== undefined ? { isActive: input.is_active } : {}),
+      // The DB trigger bumps this on every UPDATE; set it here as well so the
+      // public catalog version (lib/catalogVersion.ts) moves even on a
+      // database restored without the trigger.
+      updatedAt: new Date(),
     };
 
     try {
@@ -95,7 +100,7 @@ adminTreatmentsRouter.patch('/:id', async (req, res, next) => {
       ok(res, serializeTreatment(treatment));
     } catch (dbErr) {
       // check_duration_positive / check_price_positive constraint violations
-      // surface as Postgres error 23514 — map to 422, not a raw 500 (§6).
+      // surface as Postgres error 23514, map to 422, not a raw 500 (§6).
       if (dbErr instanceof Prisma.PrismaClientKnownRequestError && dbErr.code === 'P2010') {
         throw AppError.unprocessable('duration_minutes and price must both be positive.');
       }
@@ -110,23 +115,28 @@ adminTreatmentsRouter.patch('/:id', async (req, res, next) => {
  * DELETE /admin/treatments/:id
  *
  * Hard delete when this treatment has never been booked. Otherwise falls
- * back to a soft delete (isActive=false) — booking_requests.treatment_id
- * is ON DELETE RESTRICT, so a hard delete would fail anyway once a
- * booking exists.
+ * back to a soft delete (isActive=false). booking_requests.treatment_id and
+ * booking_request_treatments.treatment_id are both ON DELETE RESTRICT, so a
+ * hard delete would fail anyway once a booking references it.
  */
 adminTreatmentsRouter.delete('/:id', async (req, res, next) => {
   try {
     const existing = await prisma.treatment.findUnique({ where: { id: req.params.id } });
     if (!existing) throw AppError.notFound('Treatment not found.');
 
-    const bookingCount = await prisma.bookingRequest.count({ where: { treatmentId: existing.id } });
-    if (bookingCount === 0) {
+    // Used as the primary service OR as an extra service on a multi-service
+    // booking (booking_request_treatments is ON DELETE RESTRICT too).
+    if (!(await treatmentHasBookings(existing.id))) {
       await prisma.treatment.delete({ where: { id: existing.id } });
       ok(res, { id: existing.id, deleted: true });
       return;
     }
 
-    const treatment = await prisma.treatment.update({ where: { id: existing.id }, data: { isActive: false }, include: { category: true } });
+    const treatment = await prisma.treatment.update({
+      where: { id: existing.id },
+      data: { isActive: false, updatedAt: new Date() },
+      include: { category: true },
+    });
     ok(res, serializeTreatment(treatment));
   } catch (err) {
     next(err);

@@ -23,7 +23,7 @@ export const adminBookingRequestsRouter = Router();
 
 const SORT_FIELDS = ['createdAt', 'preferredDate', 'status'] as const;
 
-/** GET /admin/booking-requests — API_DOCUMENTATION.md §8.3 */
+/** GET /admin/booking-requests, API_DOCUMENTATION.md §8.3 */
 adminBookingRequestsRouter.get('/', async (req, res, next) => {
   try {
     const { page, limit, offset } = parsePagination(req.query);
@@ -45,7 +45,7 @@ adminBookingRequestsRouter.get('/', async (req, res, next) => {
     const sortRaw = asString(req.query.sort) ?? '-createdAt';
     const orderBy = parseSort(sortRaw, SORT_FIELDS, 'createdAt', 'desc');
 
-    // "New" vs "repeating" client filter — this used to be applied entirely
+    // "New" vs "repeating" client filter, this used to be applied entirely
     // client-side (re-filtering whatever page of results happened to be
     // loaded), which broke pagination totals. Resolve it here instead by
     // first finding which customers qualify (via the same customer_summary
@@ -62,8 +62,6 @@ adminBookingRequestsRouter.get('/', async (req, res, next) => {
 
     const where: Prisma.BookingRequestWhereInput = {
       ...(statuses.length ? { status: { in: statuses } } : {}),
-      ...(treatmentId ? { treatmentId } : {}),
-      ...(categoryId ? { treatment: { categoryId } } : {}),
       // customerId (exact match) takes precedence if both are somehow passed.
       ...(customerId ? { customerId } : clientTypeCustomerIds ? { customerId: { in: clientTypeCustomerIds } } : {}),
       ...(channel ? { channel } : {}),
@@ -79,6 +77,28 @@ adminBookingRequestsRouter.get('/', async (req, res, next) => {
         : {}),
       ...(createdFrom || createdTo
         ? { createdAt: { ...(createdFrom ? { gte: createdFrom } : {}), ...(createdTo ? { lte: createdTo } : {}) } }
+        : {}),
+      // A booking can carry several services. Match on the primary
+      // treatment_id (older rows, and rows written before the junction table
+      // existed) OR on any row in booking_request_treatments.
+      ...(treatmentId || categoryId
+        ? {
+            AND: [
+              ...(treatmentId
+                ? [{ OR: [{ treatmentId }, { treatments: { some: { treatmentId } } }] }]
+                : []),
+              ...(categoryId
+                ? [
+                    {
+                      OR: [
+                        { treatment: { categoryId } },
+                        { treatments: { some: { treatment: { categoryId } } } },
+                      ],
+                    },
+                  ]
+                : []),
+            ],
+          }
         : {}),
       ...(search
         ? {
@@ -100,6 +120,7 @@ adminBookingRequestsRouter.get('/', async (req, res, next) => {
         include: {
           customer: { include: { _count: { select: { bookingRequests: true } } } },
           treatment: { include: { category: true } },
+          treatments: { include: { treatment: true }, orderBy: { displayOrder: 'asc' } },
         },
       }),
       prisma.bookingRequest.count({ where }),
@@ -115,7 +136,7 @@ adminBookingRequestsRouter.get('/', async (req, res, next) => {
   }
 });
 
-/** GET /admin/booking-requests/:id — full detail + last 10 audit_logs entries */
+/** GET /admin/booking-requests/:id, full detail + last 10 audit_logs entries */
 adminBookingRequestsRouter.get('/:id', async (req, res, next) => {
   try {
     const bookingRequest = await prisma.bookingRequest.findUnique({
@@ -123,6 +144,7 @@ adminBookingRequestsRouter.get('/:id', async (req, res, next) => {
       include: {
         customer: { include: { _count: { select: { bookingRequests: true } } } },
         treatment: { include: { category: true } },
+        treatments: { include: { treatment: true }, orderBy: { displayOrder: 'asc' } },
       },
     });
     if (!bookingRequest) throw AppError.notFound('Booking request not found.');
@@ -139,7 +161,7 @@ adminBookingRequestsRouter.get('/:id', async (req, res, next) => {
   }
 });
 
-/** PATCH /admin/booking-requests/:id — enforces the status state machine (§8.5) */
+/** PATCH /admin/booking-requests/:id, enforces the status state machine (§8.5) */
 adminBookingRequestsRouter.patch('/:id', async (req, res, next) => {
   try {
     const input = parseOrThrow(bookingRequestUpdateSchema, req.body);
@@ -152,7 +174,7 @@ adminBookingRequestsRouter.patch('/:id', async (req, res, next) => {
 
     // Timestamps (contacted_at, confirmed_at, etc.) and the audit_logs row
     // are set automatically by DB triggers (set_booking_timestamps,
-    // log_booking_status_change) — we never set them here.
+    // log_booking_status_change), we never set them here.
     const bookingRequest = await prisma.bookingRequest.update({
       where: { id: existing.id },
       data: {
@@ -165,6 +187,7 @@ adminBookingRequestsRouter.patch('/:id', async (req, res, next) => {
       include: {
         customer: { include: { _count: { select: { bookingRequests: true } } } },
         treatment: { include: { category: true } },
+        treatments: { include: { treatment: true }, orderBy: { displayOrder: 'asc' } },
       },
     });
 
@@ -186,11 +209,18 @@ type BookingRequestWithRelations = Prisma.BookingRequestGetPayload<{
   include: {
     customer: { include: { _count: { select: { bookingRequests: true } } } };
     treatment: { include: { category: true } };
+    treatments: { include: { treatment: true } };
   };
 }>;
 
 function serializeBookingRequest(b: BookingRequestWithRelations) {
   const totalRequests = b.customer._count.bookingRequests;
+  const treatmentList = (b.treatments ?? []).map((row) => ({
+    id: row.treatment.id,
+    name: row.treatment.name,
+    price: row.treatment.price.toFixed(2),
+    duration_minutes: row.treatment.durationMinutes,
+  }));
   return {
     id: b.id,
     request_reference: b.requestReference,
@@ -213,6 +243,16 @@ function serializeBookingRequest(b: BookingRequestWithRelations) {
       duration_minutes: b.treatment.durationMinutes,
       category_name: b.treatment.category?.name ?? null,
     },
+    treatments: treatmentList.length
+      ? treatmentList
+      : [
+          {
+            id: b.treatment.id,
+            name: b.treatment.name,
+            price: b.treatment.price.toFixed(2),
+            duration_minutes: b.treatment.durationMinutes,
+          },
+        ],
     preferred_date: b.preferredDate,
     preferred_time: b.preferredTime,
     confirmed_date: b.confirmedDate,
@@ -220,7 +260,7 @@ function serializeBookingRequest(b: BookingRequestWithRelations) {
     channel: b.channel,
     number_of_people: b.numberOfPeople,
     total_amount: b.totalAmount?.toFixed(2) ?? null,
-    // Frozen per-booking origin — see the `origin` list filter above.
+    // Frozen per-booking origin, see the `origin` list filter above.
     origin: b.source ? ('from_pixelspring' as const) : ('from_us' as const),
     staff_notes: b.staffNotes,
     cancellation_reason: b.cancellationReason,

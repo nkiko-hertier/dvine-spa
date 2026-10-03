@@ -1,4 +1,4 @@
-// D'Vine Spa — Prisma schema
+// D'Vine Spa, Prisma schema
 //
 // This was hand-authored against the ACTUAL live schema (verified via
 // `psql \d+` against a real Postgres instance running the three SQL files
@@ -6,12 +6,12 @@
 // -> 003_realtime_notifications.sql) rather than committed sight-unseen.
 //
 // Prisma is used here as a query layer over a DB whose schema is owned by
-// hand-written SQL migrations (triggers, functions, pg_notify, views) —
+// hand-written SQL migrations (triggers, functions, pg_notify, views),
 // NOT by `prisma migrate dev`. See prisma/migrations/README.md.
 //
 // To regenerate/verify this file yourself once you have normal internet
 // access (this environment's egress allowlist blocks binaries.prisma.sh,
-// so `prisma db pull` / `generate` couldn't be run here — see chat):
+// so `prisma db pull` / `generate` couldn't be run here, see chat):
 //   npx prisma db pull   # should produce a schema equivalent to this one
 //   npx prisma generate
 
@@ -98,8 +98,9 @@ model Treatment {
   createdAt        DateTime @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt        DateTime @default(now()) @map("updated_at") @db.Timestamp(6)
 
-  category        Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  bookingRequests BookingRequest[]
+  category                 Category?                 @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  bookingRequests          BookingRequest[]
+  bookingRequestTreatments BookingRequestTreatment[]
 
   @@index([categoryId], map: "idx_treatments_category")
   @@index([isActive], map: "idx_treatments_active")
@@ -125,6 +126,8 @@ model Customer {
   @@index([phoneNumber], map: "idx_customers_phone")
   @@index([source], map: "idx_customers_source")
   @@index([customerSince], map: "idx_customers_since")
+  // Serves max(updated_at) for the dashboard change-version poll (sql/008).
+  @@index([updatedAt], map: "idx_customers_updated")
   @@map("customers")
 }
 
@@ -154,9 +157,10 @@ model BookingRequest {
   // Drives the PX-/DV- request_reference prefix and the payment report split.
   source              CustomerSource?
 
-  customer  Customer   @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  treatment Treatment  @relation(fields: [treatmentId], references: [id], onDelete: Restrict)
-  auditLogs AuditLog[]
+  customer   Customer                  @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  treatment  Treatment                 @relation(fields: [treatmentId], references: [id], onDelete: Restrict)
+  treatments BookingRequestTreatment[]
+  auditLogs  AuditLog[]
 
   @@index([customerId], map: "idx_booking_requests_customer")
   @@index([treatmentId], map: "idx_booking_requests_treatment")
@@ -166,13 +170,31 @@ model BookingRequest {
   @@index([channel], map: "idx_booking_requests_channel")
   @@index([source], map: "idx_booking_requests_source")
   @@index([status, preferredDate], map: "idx_booking_requests_status_date")
+  // Serves max(updated_at) for the dashboard change-version poll (sql/008).
+  @@index([updatedAt], map: "idx_booking_requests_updated")
   @@map("booking_requests")
+}
+
+/// Extra services on a booking request beyond the primary treatment_id.
+/// display_order 0 matches booking_requests.treatment_id.
+model BookingRequestTreatment {
+  bookingRequestId String @map("booking_request_id") @db.Uuid
+  treatmentId      String @map("treatment_id") @db.Uuid
+  displayOrder     Int    @default(0) @map("display_order")
+
+  bookingRequest BookingRequest @relation(fields: [bookingRequestId], references: [id], onDelete: Cascade)
+  treatment      Treatment      @relation(fields: [treatmentId], references: [id], onDelete: Restrict)
+
+  @@id([bookingRequestId, treatmentId])
+  @@index([treatmentId], map: "idx_brt_treatment")
+  @@index([bookingRequestId], map: "idx_brt_booking")
+  @@map("booking_request_treatments")
 }
 
 model Staff {
   id           String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   email        String    @unique @db.Citext
-  passwordHash String?   @map("password_hash") @db.VarChar(255) // deprecated — Clerk owns auth, see column comment in DB
+  passwordHash String?   @map("password_hash") @db.VarChar(255) // deprecated, Clerk owns auth, see column comment in DB
   fullName     String    @map("full_name") @db.VarChar(100)
   role         UserRole  @default(staff)
   phoneNumber  String?   @map("phone_number") @db.VarChar(20)
@@ -182,7 +204,8 @@ model Staff {
   updatedAt    DateTime  @default(now()) @map("updated_at") @db.Timestamp(6)
   clerkUserId  String?   @unique @map("clerk_user_id") @db.VarChar(64)
 
-  auditLogs AuditLog[]
+  auditLogs         AuditLog[]
+  pushSubscriptions PushSubscription[]
 
   @@index([isActive], map: "idx_staff_active")
   @@index([clerkUserId], map: "idx_staff_clerk_user_id")
@@ -211,7 +234,7 @@ model AuditLog {
 }
 
 /// Idempotency log for inbound webhooks (Clerk today, others later).
-/// Written to directly by the webhook handler in Phase 2 — not by triggers.
+/// Written to directly by the webhook handler in Phase 2, not by triggers.
 model WebhookEvent {
   id            String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   provider      String    @default("clerk") @db.VarChar(30)
@@ -231,7 +254,7 @@ model WebhookEvent {
 
 /// Backing store for the atomic request_reference generator
 /// (see generate_request_reference() in 002_clerk_integration_and_fixes.sql).
-/// Not written to directly by application code — the DB trigger owns it.
+/// Not written to directly by application code, the DB trigger owns it.
 model RequestReferenceCounter {
   yearPart String @id @map("year_part") @db.VarChar(4)
   lastSeq  Int    @default(0) @map("last_seq")
@@ -240,7 +263,7 @@ model RequestReferenceCounter {
 }
 
 // ------------------------------------------------------------
-// Views (read-only — defined in SQL, §4 of the base schema)
+// Views (read-only, defined in SQL, §4 of the base schema)
 // ------------------------------------------------------------
 
 view BookingRequestDetail {
@@ -267,6 +290,8 @@ view BookingRequestDetail {
   numberOfPeople   Int?      @map("number_of_people")
   totalAmount      Decimal?  @map("total_amount") @db.Decimal(10, 2)
   bookingSource    CustomerSource? @map("booking_source")
+  treatmentNames   String?   @map("treatment_names")
+  treatmentCount   Int?      @map("treatment_count")
 
   // @@id([id])
   @@map("booking_request_details")
@@ -282,7 +307,7 @@ view CustomerSummary {
   totalRequests         BigInt?   @map("total_requests")
   totalVisits           BigInt?   @map("total_visits")
   lastVisitDate         DateTime? @map("last_visit_date") @db.Date
-  mostRecentTreatment   String?   @map("most_recent_treatment") @db.VarChar(100)
+  mostRecentTreatment   String?   @map("most_recent_treatment")
   pendingRequests       BigInt?   @map("pending_requests")
   lastActivity          DateTime? @map("last_activity") @db.Timestamp(6)
 
@@ -302,4 +327,23 @@ view DailyRequestsSummary {
 
   //@@id([requestDate])
   @@map("daily_requests_summary")
+}
+
+/// One device a staff member has turned notifications on for. The endpoint
+/// is the address the browser's push service gave us; p256dh/auth are the
+/// keys the message body is encrypted with. See sql/007.
+model PushSubscription {
+  id         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  staffId    String    @map("staff_id") @db.Uuid
+  endpoint   String    @unique
+  p256dh     String
+  auth       String
+  userAgent  String?   @map("user_agent") @db.VarChar(255)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  lastUsedAt DateTime? @map("last_used_at") @db.Timestamp(6)
+
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId], map: "idx_push_subscriptions_staff")
+  @@map("push_subscriptions")
 }
