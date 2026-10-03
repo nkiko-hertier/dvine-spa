@@ -39,6 +39,12 @@ const envSchema = z.object({
   // "booking completed" thank-you email. Template renders without the CTA
   // block if this is unset, so it doesn't block shipping the rest.
   REVIEW_LINK_URL: z.string().url().optional(),
+
+  // Web Push (staff phone notifications). Optional: with no keys, push is a
+  // no-op. Generate a pair with `npx web-push generate-vapid-keys`.
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  VAPID_SUBJECT: z.string().optional(), // e.g. mailto:you@example.com
 });
 
 const parsed = envSchema.safeParse(process.env);
