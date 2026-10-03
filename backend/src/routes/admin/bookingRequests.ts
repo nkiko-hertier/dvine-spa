@@ -12,16 +12,31 @@ import {
   bookingStatusSchema,
   clientTypeSchema,
   bookingOriginSchema,
+  bookedServiceUpdateSchema,
 } from '../../schemas/index.js';
 import { assertValidTransition } from '../../lib/bookingStatusMachine.js';
 import { timeStringToDate } from '../../lib/time.js';
 import { serializeAuditLog } from '../../lib/serializers.js';
 import { notifyCustomerStatusChange } from '../../lib/emailNotifications.js';
 import { deferAfterResponse } from '../../lib/deferredWork.js';
+import {
+  bookedServicesInclude,
+  serializeBookedService,
+  summarizeBookedServices,
+  assertServicesAllowCompletion,
+} from '../../lib/bookedServices.js';
 
 export const adminBookingRequestsRouter = Router();
 
 const SORT_FIELDS = ['createdAt', 'preferredDate', 'status'] as const;
+
+/** Everything serializeBookingRequest needs, shared by every endpoint here. */
+const bookingInclude = {
+  customer: { include: { _count: { select: { bookingRequests: true } } } },
+  treatment: { include: { category: true } },
+  treatments: { include: { treatment: true }, orderBy: { displayOrder: 'asc' as const } },
+  ...bookedServicesInclude,
+} satisfies Prisma.BookingRequestInclude;
 
 /** GET /admin/booking-requests, API_DOCUMENTATION.md §8.3 */
 adminBookingRequestsRouter.get('/', async (req, res, next) => {
@@ -62,6 +77,8 @@ adminBookingRequestsRouter.get('/', async (req, res, next) => {
 
     const where: Prisma.BookingRequestWhereInput = {
       ...(statuses.length ? { status: { in: statuses } } : {}),
+      ...(treatmentId ? { treatmentId } : {}),
+      ...(categoryId ? { treatment: { categoryId } } : {}),
       // customerId (exact match) takes precedence if both are somehow passed.
       ...(customerId ? { customerId } : clientTypeCustomerIds ? { customerId: { in: clientTypeCustomerIds } } : {}),
       ...(channel ? { channel } : {}),
@@ -77,28 +94,6 @@ adminBookingRequestsRouter.get('/', async (req, res, next) => {
         : {}),
       ...(createdFrom || createdTo
         ? { createdAt: { ...(createdFrom ? { gte: createdFrom } : {}), ...(createdTo ? { lte: createdTo } : {}) } }
-        : {}),
-      // A booking can carry several services. Match on the primary
-      // treatment_id (older rows, and rows written before the junction table
-      // existed) OR on any row in booking_request_treatments.
-      ...(treatmentId || categoryId
-        ? {
-            AND: [
-              ...(treatmentId
-                ? [{ OR: [{ treatmentId }, { treatments: { some: { treatmentId } } }] }]
-                : []),
-              ...(categoryId
-                ? [
-                    {
-                      OR: [
-                        { treatment: { categoryId } },
-                        { treatments: { some: { treatment: { categoryId } } } },
-                      ],
-                    },
-                  ]
-                : []),
-            ],
-          }
         : {}),
       ...(search
         ? {
@@ -117,11 +112,7 @@ adminBookingRequestsRouter.get('/', async (req, res, next) => {
         orderBy,
         skip: offset,
         take: limit,
-        include: {
-          customer: { include: { _count: { select: { bookingRequests: true } } } },
-          treatment: { include: { category: true } },
-          treatments: { include: { treatment: true }, orderBy: { displayOrder: 'asc' } },
-        },
+        include: bookingInclude,
       }),
       prisma.bookingRequest.count({ where }),
     ]);
@@ -141,11 +132,7 @@ adminBookingRequestsRouter.get('/:id', async (req, res, next) => {
   try {
     const bookingRequest = await prisma.bookingRequest.findUnique({
       where: { id: req.params.id },
-      include: {
-        customer: { include: { _count: { select: { bookingRequests: true } } } },
-        treatment: { include: { category: true } },
-        treatments: { include: { treatment: true }, orderBy: { displayOrder: 'asc' } },
-      },
+      include: bookingInclude,
     });
     if (!bookingRequest) throw AppError.notFound('Booking request not found.');
 
@@ -171,11 +158,15 @@ adminBookingRequestsRouter.patch('/:id', async (req, res, next) => {
     if (input.status) {
       assertValidTransition(existing.status, input.status as BookingStatus);
     }
+    // Completing needs every service served or cancelled (sql/009).
+    if (input.status === 'completed' && existing.status !== 'completed') {
+      await assertServicesAllowCompletion(existing.id);
+    }
 
     // Timestamps (contacted_at, confirmed_at, etc.) and the audit_logs row
     // are set automatically by DB triggers (set_booking_timestamps,
     // log_booking_status_change), we never set them here.
-    const bookingRequest = await prisma.bookingRequest.update({
+    const updateBooking = prisma.bookingRequest.update({
       where: { id: existing.id },
       data: {
         ...(input.status ? { status: input.status as BookingStatus } : {}),
@@ -184,12 +175,26 @@ adminBookingRequestsRouter.patch('/:id', async (req, res, next) => {
         ...(input.staff_notes !== undefined ? { staffNotes: input.staff_notes } : {}),
         ...(input.cancellation_reason !== undefined ? { cancellationReason: input.cancellation_reason } : {}),
       },
-      include: {
-        customer: { include: { _count: { select: { bookingRequests: true } } } },
-        treatment: { include: { category: true } },
-        treatments: { include: { treatment: true }, orderBy: { displayOrder: 'asc' } },
-      },
+      include: bookingInclude,
     });
+
+    // A cancelled / no-show booking can no longer be served, so its still
+    // pending services are cancelled with it (done ones stay done). Same
+    // transaction, and listed first so the booking returned below already
+    // reflects it.
+    const closesBooking =
+      (input.status === 'cancelled' || input.status === 'no_show') && existing.status !== input.status;
+    const bookingRequest = closesBooking
+      ? (
+          await prisma.$transaction([
+            prisma.bookedService.updateMany({
+              where: { bookingId: existing.id, status: 'pending' },
+              data: { status: 'cancelled', resolvedAt: new Date() },
+            }),
+            updateBooking,
+          ])
+        )[1]
+      : await updateBooking;
 
     ok(res, serializeBookingRequest(bookingRequest));
 
@@ -205,13 +210,71 @@ adminBookingRequestsRouter.patch('/:id', async (req, res, next) => {
   }
 });
 
-type BookingRequestWithRelations = Prisma.BookingRequestGetPayload<{
-  include: {
-    customer: { include: { _count: { select: { bookingRequests: true } } } };
-    treatment: { include: { category: true } };
-    treatments: { include: { treatment: true } };
-  };
-}>;
+/**
+ * PATCH /admin/booking-requests/:id/services/:serviceId
+ * Marks one service pending / done / cancelled.
+ *
+ * Only while the booking is confirmed (that is when services are actually
+ * served). When the last pending service is resolved and at least one was
+ * served, the booking is completed automatically; if every service was
+ * cancelled it is left for staff to cancel instead. The response carries
+ * `booking_auto_completed` so the dashboard can say so.
+ */
+adminBookingRequestsRouter.patch('/:id/services/:serviceId', async (req, res, next) => {
+  try {
+    const input = parseOrThrow(bookedServiceUpdateSchema, req.body);
+    const booking = await prisma.bookingRequest.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, status: true, bookedServices: { select: { id: true } } },
+    });
+    if (!booking) throw AppError.notFound('Booking request not found.');
+    if (!booking.bookedServices.some((s) => s.id === req.params.serviceId)) {
+      throw AppError.notFound('Service not found on this booking.');
+    }
+    if (booking.status !== 'confirmed') {
+      throw AppError.conflict(
+        booking.status === 'new_request' || booking.status === 'contacted'
+          ? 'Confirm the booking before marking its services.'
+          : `This booking is ${booking.status.replace('_', ' ')}, so its services can no longer be changed.`,
+      );
+    }
+
+    await prisma.bookedService.update({
+      where: { id: req.params.serviceId },
+      data: { status: input.status, resolvedAt: input.status === 'pending' ? null : new Date() },
+    });
+
+    // Auto-complete once nothing is pending and at least one was served.
+    const rows = await prisma.bookedService.findMany({
+      where: { bookingId: booking.id },
+      select: { status: true },
+    });
+    const summary = summarizeBookedServices(rows);
+    let autoCompleted = false;
+    if (summary.pending === 0 && summary.done > 0) {
+      // Guarded on status so two quick taps cannot complete (or email) twice.
+      const { count } = await prisma.bookingRequest.updateMany({
+        where: { id: booking.id, status: 'confirmed' },
+        data: { status: 'completed' },
+      });
+      autoCompleted = count === 1;
+    }
+
+    const bookingRequest = await prisma.bookingRequest.findUniqueOrThrow({
+      where: { id: booking.id },
+      include: bookingInclude,
+    });
+    ok(res, { ...serializeBookingRequest(bookingRequest), booking_auto_completed: autoCompleted });
+
+    if (autoCompleted) {
+      deferAfterResponse(notifyCustomerStatusChange(bookingRequest, 'completed'), 'notifyCustomerStatusChange');
+    }
+  } catch (err) {
+    next(err);
+  }
+});
+
+type BookingRequestWithRelations = Prisma.BookingRequestGetPayload<{ include: typeof bookingInclude }>;
 
 function serializeBookingRequest(b: BookingRequestWithRelations) {
   const totalRequests = b.customer._count.bookingRequests;
@@ -265,5 +328,9 @@ function serializeBookingRequest(b: BookingRequestWithRelations) {
     staff_notes: b.staffNotes,
     cancellation_reason: b.cancellationReason,
     created_at: b.createdAt,
+    // Per-service tracking (sql/009). Empty only for a booking that has no
+    // rows to track; the dashboard then shows the plain `treatments` list.
+    booked_services: (b.bookedServices ?? []).map(serializeBookedService),
+    services_summary: summarizeBookedServices(b.bookedServices ?? []),
   };
 }

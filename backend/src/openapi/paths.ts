@@ -7,7 +7,7 @@ import {
 } from './schemas.js';
 import {
   categoryCreateSchema, categoryUpdateSchema, treatmentCreateSchema, treatmentUpdateSchema,
-  bookingRequestCreateSchema, bookingRequestUpdateSchema, customerUpdateSchema,
+  bookingRequestCreateSchema, bookingRequestUpdateSchema, bookedServiceUpdateSchema, customerUpdateSchema,
   staffInviteSchema, staffUpdateSchema,
 } from '../schemas/index.js';
 
@@ -23,7 +23,7 @@ const okListJson = <T extends z.ZodTypeAny>(description: string, schema: T) => (
 const body = <T extends z.ZodTypeAny>(schema: T) => ({ content: json(schema), required: true });
 
 // ------------------------------------------------------------
-// Public — categories & treatments (API_DOCUMENTATION.md §5-6)
+// Public, categories & treatments (API_DOCUMENTATION.md §5-6)
 // ------------------------------------------------------------
 
 registry.registerPath({
@@ -69,7 +69,7 @@ registry.registerPath({
 });
 
 // ------------------------------------------------------------
-// Public — booking requests (§8.1-8.2)
+// Public, booking requests (§8.1-8.2)
 // ------------------------------------------------------------
 
 registry.registerPath({
@@ -90,7 +90,7 @@ registry.registerPath({
 });
 
 // ------------------------------------------------------------
-// Admin — categories (§5)
+// Admin, categories (§5)
 // ------------------------------------------------------------
 
 const bearerAuth = [{ clerkSession: [] }];
@@ -129,7 +129,7 @@ registry.registerPath({
 });
 
 // ------------------------------------------------------------
-// Admin — treatments (§6)
+// Admin, treatments (§6)
 // ------------------------------------------------------------
 
 registry.registerPath({
@@ -166,7 +166,7 @@ registry.registerPath({
 });
 
 // ------------------------------------------------------------
-// Admin — customers (§7)
+// Admin, customers (§7)
 // ------------------------------------------------------------
 
 registry.registerPath({
@@ -181,13 +181,13 @@ registry.registerPath({
 });
 registry.registerPath({
   method: 'patch', path: '/admin/customers/{id}', tags: ['Admin / Customers'], security: bearerAuth,
-  summary: 'phone_number is intentionally not editable — it is the dedupe key',
+  summary: 'phone_number is intentionally not editable: it is the dedupe key',
   request: { params: z.object({ id: z.string().uuid() }), body: body(customerUpdateSchema) },
   responses: { 200: okJson('Updated', customerSchema), ...commonErrorResponses },
 });
 
 // ------------------------------------------------------------
-// Admin — booking requests (§8.3-8.5)
+// Admin, booking requests (§8.3-8.5)
 // ------------------------------------------------------------
 
 registry.registerPath({
@@ -228,14 +228,20 @@ registry.registerPath({
   request: { params: z.object({ id: z.string().uuid() }), body: body(bookingRequestUpdateSchema) },
   responses: { 200: okJson('Updated', bookingRequestSchema), ...commonErrorResponses },
 });
+registry.registerPath({
+  method: 'patch', path: '/admin/booking-requests/{id}/services/{serviceId}', tags: ['Admin / Booking Requests'], security: bearerAuth,
+  summary: 'Mark one service pending / done / cancelled (booking must be confirmed). When none is left pending and at least one is done, the booking is completed automatically (booking_auto_completed: true).',
+  request: { params: z.object({ id: z.string().uuid(), serviceId: z.string().uuid() }), body: body(bookedServiceUpdateSchema) },
+  responses: { 200: okJson('Updated booking', bookingRequestSchema), ...commonErrorResponses },
+});
 
 // ------------------------------------------------------------
-// Admin — audit logs (§10) & dashboard (§11)
+// Admin, audit logs (§10) & dashboard (§11)
 // ------------------------------------------------------------
 
 registry.registerPath({
   method: 'get', path: '/admin/audit-logs', tags: ['Admin / Audit Logs'], security: bearerAuth,
-  summary: 'Read-only — rows are written only by the log_booking_status_change DB trigger',
+  summary: 'Read-only: rows are written only by the log_booking_status_change DB trigger',
   request: {
     query: z.object({
       booking_request_id: z.string().uuid().optional(),
@@ -265,17 +271,17 @@ registry.registerPath({
 });
 
 // ------------------------------------------------------------
-// Admin — me (any authenticated staff member)
+// Admin, me (any authenticated staff member)
 // ------------------------------------------------------------
 
 registry.registerPath({
   method: 'get', path: '/admin/me', tags: ['Admin / Me'], security: bearerAuth,
-  summary: "The signed-in staff member's own record, including role — lets the frontend gate admin-only UI (e.g. User Management) without guessing from Clerk metadata.",
+  summary: "The signed-in staff member's own record, including role. Lets the frontend gate admin-only UI (e.g. User Management) without guessing from Clerk metadata.",
   responses: { 200: okJson('Current staff member', staffSchema), ...commonErrorResponses },
 });
 
 // ------------------------------------------------------------
-// Admin — staff (§9, admin role only)
+// Admin, staff (§9, admin role only)
 // ------------------------------------------------------------
 
 registry.registerPath({
@@ -307,7 +313,7 @@ registry.registerPath({
 });
 registry.registerPath({
   method: 'delete', path: '/admin/staff/{id}/permanent', tags: ['Admin / Staff'], security: bearerAuth,
-  summary: 'Admin role required. HARD delete — removes the linked Clerk user and the local staff row for good. Irreversible; cannot target your own account.',
+  summary: 'Admin role required. HARD delete: removes the linked Clerk user and the local staff row for good. Irreversible; cannot target your own account.',
   request: { params: z.object({ id: z.string().uuid() }) },
   responses: {
     200: okJson('Permanently deleted', z.object({ id: z.string().uuid(), deleted: z.literal(true) })),

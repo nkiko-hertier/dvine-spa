@@ -43,7 +43,7 @@ src/
     auth.ts                   # requireAuth / requireRole (Clerk)
     rateLimit.ts                # public/booking/admin rate limiters (§4.5)
     errorHandler.ts              # global error handler + 404 handler
-  schemas/index.ts            # Zod request validation (snake_case wire format — see note below)
+  schemas/index.ts            # Zod request validation (snake_case wire format, see note below)
   routes/
     health.ts                   # GET /health (includes DB connectivity check)
     docs.ts                      # GET /docs (Swagger UI), GET /openapi.json
@@ -60,9 +60,9 @@ src/
     document.ts                     # generates the final OpenAPI document
 ```
 
-> **Wire format note:** request and response bodies are `snake_case` throughout (`full_name`, `treatment_id`), matching `docs/API_DOCUMENTATION.md`. Zod schemas in `schemas/index.ts` validate the snake_case shape directly; route handlers map explicitly to Prisma's camelCase columns. Don't "fix" either side to match the other's casing — that mismatch was a real bug once, see `docs/task.md`'s Phase 2-6 notes.
+> **Wire format note:** request and response bodies are `snake_case` throughout (`full_name`, `treatment_id`), matching `docs/API_DOCUMENTATION.md`. Zod schemas in `schemas/index.ts` validate the snake_case shape directly; route handlers map explicitly to Prisma's camelCase columns. Don't "fix" either side to match the other's casing, that mismatch was a real bug once, see `docs/task.md`'s Phase 2-6 notes.
 
-Routes are added incrementally per `docs/task.md`. Phases 2-8 are code-complete (auth, public/admin endpoints, realtime, API docs) — see `docs/task.md` for what's still unverified (live Clerk/DB testing) versus what's genuinely done.
+Routes are added incrementally per `docs/task.md`. Phases 2-8 are code-complete (auth, public/admin endpoints, realtime, API docs), see `docs/task.md` for what's still unverified (live Clerk/DB testing) versus what's genuinely done.
 
 ## Getting started
 
@@ -72,18 +72,22 @@ npm install                   # also runs `prisma generate` via postinstall
 docker compose up -d          # starts local Postgres
 ```
 
-Apply the schema (hand-written SQL is the source of truth — see `prisma/migrations/README.md` for why):
+Apply the schema (hand-written SQL is the source of truth, see `prisma/migrations/README.md` for why):
 
 ```bash
 psql "$DATABASE_URL" -f sql/001_base_schema.sql
 psql "$DATABASE_URL" -f sql/002_clerk_integration_and_fixes.sql
 psql "$DATABASE_URL" -f sql/003_realtime_notifications.sql
+psql "$DATABASE_URL" -f sql/005_request_reference_prefix_ps.sql
+psql "$DATABASE_URL" -f sql/006_booking_request_treatments.sql
+psql "$DATABASE_URL" -f sql/007_request_reference_prefix_ps.sql
+psql "$DATABASE_URL" -f sql/009_booked_services.sql   # per-service status on a booking; run BEFORE deploying the matching backend
 npx prisma migrate resolve --applied 0_init   # tells Prisma this baseline is already applied
 npx prisma db seed                            # optional: load dev fixtures
 ```
 
-> The first command above will print one expected error —
-> `invalid input syntax for type integer: "2026-000001"` — from the base
+> The first command above will print one expected error,
+> `invalid input syntax for type integer: "2026-000001"`, from the base
 > schema's own inline sample data, which trips over the exact bug that
 > `002_clerk_integration_and_fixes.sql` fixes. It's harmless (every other
 > statement in the file succeeds); use `npx prisma db seed` to get working
@@ -97,8 +101,8 @@ npm run dev                   # http://localhost:4000, hot reload
 curl http://localhost:4000/health
 ```
 
-- **API reference (Swagger UI):** http://localhost:4000/docs (raw spec at `/openapi.json`) — generated from the same Zod schemas the routes validate against, so it can't drift silently from what the code actually accepts.
-- **Realtime:** Socket.IO mounts on the same HTTP server automatically; connect with a Clerk session token in `auth: { token }` (see `docs/API_DOCUMENTATION.md` §12). Requires `CLERK_SECRET_KEY` and `DATABASE_URL` to be set — the server logs a warning at startup if either is missing, rather than failing silently on first connection.
+- **API reference (Swagger UI):** http://localhost:4000/docs (raw spec at `/openapi.json`), generated from the same Zod schemas the routes validate against, so it can't drift silently from what the code actually accepts.
+- **Realtime:** Socket.IO mounts on the same HTTP server automatically; connect with a Clerk session token in `auth: { token }` (see `docs/API_DOCUMENTATION.md` §12). Requires `CLERK_SECRET_KEY` and `DATABASE_URL` to be set, the server logs a warning at startup if either is missing, rather than failing silently on first connection.
 
 ## Scripts
 
@@ -124,10 +128,10 @@ Every response follows the envelope in `docs/API_DOCUMENTATION.md` §4.1:
 { "success": false, "error": { "code": "NOT_FOUND", "message": "..." } }
 ```
 
-Throw `AppError` (see `src/lib/errors.ts`) from anywhere in a route handler or service — the global error handler in `src/middleware/errorHandler.ts` converts it to the right HTTP status and JSON shape automatically. Zod validation errors are converted the same way.
+Throw `AppError` (see `src/lib/errors.ts`) from anywhere in a route handler or service, the global error handler in `src/middleware/errorHandler.ts` converts it to the right HTTP status and JSON shape automatically. Zod validation errors are converted the same way.
 
 ## A note on how this was built
 
-The DB layer (schema, migrations, Prisma models) was built and verified against a **real local Postgres instance**, not assumed from the SQL source alone — that's how a real bug in the original schema (a broken reference-number generator, root-caused live) and a second bug introduced while fixing it (an ambiguous column reference in the fix itself) both got caught and corrected before landing here. See `sql/002_clerk_integration_and_fixes.sql` and `prisma/migrations/README.md` for the details.
+The DB layer (schema, migrations, Prisma models) was built and verified against a **real local Postgres instance**, not assumed from the SQL source alone, that's how a real bug in the original schema (a broken reference-number generator, root-caused live) and a second bug introduced while fixing it (an ambiguous column reference in the fix itself) both got caught and corrected before landing here. See `sql/002_clerk_integration_and_fixes.sql` and `prisma/migrations/README.md` for the details.
 
-One thing that could **not** be verified in the environment this was built in: `npx prisma generate`/`db pull`/`validate` require downloading engine binaries from `binaries.prisma.sh`, which wasn't reachable from that sandbox. `prisma/schema.prisma` was therefore hand-authored to match the live, `psql`-verified schema rather than tool-generated. Run `npx prisma generate` after `npm install` (step above) to confirm it's valid in your own environment — if it throws, that's the first thing to fix.
+One thing that could **not** be verified in the environment this was built in: `npx prisma generate`/`db pull`/`validate` require downloading engine binaries from `binaries.prisma.sh`, which wasn't reachable from that sandbox. `prisma/schema.prisma` was therefore hand-authored to match the live, `psql`-verified schema rather than tool-generated. Run `npx prisma generate` after `npm install` (step above) to confirm it's valid in your own environment, if it throws, that's the first thing to fix.

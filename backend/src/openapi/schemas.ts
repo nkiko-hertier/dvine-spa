@@ -91,10 +91,18 @@ export const bookingRequestSchema = registry.register(
   'BookingRequest',
   z.object({
     id: z.string().uuid(),
-    request_reference: z.string().openapi({ example: 'DV-2026-000123' }),
+    request_reference: z.string().openapi({ example: 'PX-2026-000123' }),
     status: bookingStatusSchema,
     customer: bookingCustomerRefSchema,
     treatment: bookingTreatmentRefSchema,
+    treatments: z.array(
+      z.object({
+        id: z.string().uuid(),
+        name: z.string(),
+        price: z.string(),
+        duration_minutes: z.number().int(),
+      }),
+    ).optional(),
     preferred_date: z.string(),
     preferred_time: z.string(),
     confirmed_date: z.string().nullable(),
@@ -112,6 +120,23 @@ export const bookingRequestSchema = registry.register(
     staff_notes: z.string().nullable(),
     cancellation_reason: z.string().nullable(),
     created_at: z.string().datetime(),
+    booked_services: z.array(
+      z.object({
+        id: z.string().uuid(),
+        treatment_id: z.string().uuid(),
+        service_name: z.string(),
+        price: z.string(),
+        display_order: z.number().int(),
+        status: z.enum(['pending', 'done', 'cancelled']),
+        resolved_at: z.string().datetime().nullable(),
+      }),
+    ).openapi({ description: 'One row per service, each with its own status (sql/009).' }),
+    services_summary: z.object({
+      total: z.number().int(),
+      pending: z.number().int(),
+      done: z.number().int(),
+      cancelled: z.number().int(),
+    }),
   }),
 );
 
@@ -122,6 +147,9 @@ export const bookingRequestCreateResponseSchema = registry.register(
     request_reference: z.string(),
     status: bookingStatusSchema,
     treatment: z.object({ id: z.string().uuid(), name: z.string(), price: z.string(), duration_minutes: z.number().int() }),
+    treatments: z.array(
+      z.object({ id: z.string().uuid(), name: z.string(), price: z.string(), duration_minutes: z.number().int() }),
+    ).optional(),
     preferred_date: z.string(),
     preferred_time: z.string(),
     number_of_people: z.number().int(),
@@ -136,6 +164,9 @@ export const bookingLookupResponseSchema = registry.register(
     request_reference: z.string(),
     status: bookingStatusSchema,
     treatment_name: z.string(),
+    treatments: z.array(
+      z.object({ id: z.string().uuid(), name: z.string(), price: z.string(), duration_minutes: z.number().int() }),
+    ).optional(),
     confirmed_date: z.string().nullable(),
     confirmed_time: z.string().nullable(),
   }),
@@ -196,8 +227,8 @@ export const paymentReportSchema = registry.register(
     month: z.number().int().openapi({ description: '1-12' }),
     period_start: z.string().datetime(),
     period_end: z.string().datetime(),
-    from_dvine: paymentBucketSchema.openapi({ description: 'Bookings with no source — staff-entered, reference DV-…' }),
-    from_pixelspring: paymentBucketSchema.openapi({ description: 'Bookings with a source — public booking site, reference PX-…' }),
+    from_dvine: paymentBucketSchema.openapi({ description: 'Bookings with no source: staff-entered, reference DV-…' }),
+    from_pixelspring: paymentBucketSchema.openapi({ description: 'Bookings with a source: public booking site, reference PX-…' }),
     total: paymentBucketSchema,
   }),
 );
