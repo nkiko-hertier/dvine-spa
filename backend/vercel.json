@@ -16,10 +16,6 @@
   ],
   "crons": [
     {
-      "path": "/internal/cron/attention?summary=1",
-      "schedule": "0 6 * * *"
-    },
-    {
       "path": "/internal/cron/attention",
       "schedule": "0 9,12,15,18 * * *"
     }
