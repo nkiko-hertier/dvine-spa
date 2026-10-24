@@ -277,10 +277,10 @@ BEGIN
     SELECT COALESCE(MAX(CAST(SUBSTRING(request_reference FROM 4) AS INT)), 0) + 1
     INTO seq_num
     FROM booking_requests
-    WHERE request_reference LIKE 'DV-' || year_part || '-%';
+    WHERE request_reference LIKE 'PS-' || year_part || '-%';
     
     seq_str := LPAD(seq_num::TEXT, 6, '0');
-    NEW.request_reference := 'DV-' || year_part || '-' || seq_str;
+    NEW.request_reference := 'PS-' || year_part || '-' || seq_str;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;

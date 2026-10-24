@@ -1,7 +1,7 @@
 import type { Category, Treatment, AuditLog, Customer, CustomerSummary, DailyRequestsSummary } from '@prisma/client';
 
 /** BigInt (from view COUNT() columns) doesn't survive JSON.stringify/res.json
- * as-is — it throws "Do not know how to serialize a BigInt". Counts here
+ * as-is, it throws "Do not know how to serialize a BigInt". Counts here
  * are booking/customer volumes for a single spa, nowhere near
  * Number.MAX_SAFE_INTEGER, so a plain Number conversion is safe. */
 function toNumber(value: bigint | number | null): number | null {
@@ -24,7 +24,7 @@ export function serializeCategory(c: Category) {
 
 type TreatmentWithCategory = Treatment & { category?: Category | null };
 
-/** Public-facing shape (§6 list/detail) — deliberately omits is_active,
+/** Public-facing shape (§6 list/detail), deliberately omits is_active,
  * display_order, created_at, updated_at, which are admin-only fields. */
 export function serializePublicTreatment(t: TreatmentWithCategory) {
   return {

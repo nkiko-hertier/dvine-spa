@@ -15,6 +15,28 @@ export default tseslint.config(
     },
   },
   {
+    // Plain Node scripts (no TypeScript, run with `node`): globals like
+    // process/console/fetch are theirs, not the browser's.
+    files: ['scripts/**/*.mjs', 'scripts/**/*.js', '*.config.js', '*.config.mjs'],
+    languageOptions: {
+      globals: {
+        process: 'readonly',
+        console: 'readonly',
+        fetch: 'readonly',
+        URL: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        AbortController: 'readonly',
+      },
+    },
+  },
+  {
+    // The Vercel serverless entry adapts an Express app to the platform's
+    // handler signature; its @ts-nocheck is deliberate (see the file).
+    files: ['api/**/*.ts'],
+    rules: { '@typescript-eslint/ban-ts-comment': 'off' },
+  },
+  {
     ignores: ['dist/**', 'node_modules/**', 'coverage/**'],
   },
 );

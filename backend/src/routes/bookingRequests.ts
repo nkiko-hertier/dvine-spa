@@ -142,16 +142,6 @@ bookingRequestsRouter.post('/', bookingCreateLimiter, async (req, res, next) => 
             displayOrder: i,
           })),
         },
-        // One trackable row per service (sql/009): name and price are
-        // frozen here, status starts 'pending' and staff resolve each one.
-        bookedServices: {
-          create: ordered.map((t, i) => ({
-            treatmentId: t.id,
-            serviceName: t.name,
-            price: t.price,
-            displayOrder: i,
-          })),
-        },
       },
       include: {
         customer: true,
@@ -207,6 +197,7 @@ bookingRequestsRouter.get('/lookup', async (req, res, next) => {
     const bookingRequest = await prisma.bookingRequest.findFirst({
       where: { requestReference: input.reference, customer: { phoneNumber: input.phone_number } },
       include: {
+        customer: true,
         treatment: true,
         treatments: { include: { treatment: true }, orderBy: { displayOrder: 'asc' } },
       },
@@ -219,6 +210,11 @@ bookingRequestsRouter.get('/lookup', async (req, res, next) => {
     ok(res, {
       request_reference: bookingRequest.requestReference,
       status: bookingRequest.status,
+      // The caller already proved they hold both the reference and the phone
+      // number, so the client's own contact details are safe to echo back.
+      customer_name: bookingRequest.customer.fullName,
+      phone_number: bookingRequest.customer.phoneNumber,
+      whatsapp_number: bookingRequest.customer.whatsappNumber,
       treatment_name: treatmentNamesFromBooking(bookingRequest),
       treatments: bookingRequest.treatments.map((row) => serializeTreatmentRef(row.treatment)),
       confirmed_date: bookingRequest.confirmedDate,
@@ -299,6 +295,7 @@ bookingRequestsRouter.get('/easy-lookup', async (req, res, next) => {
     const bookingRequest = await prisma.bookingRequest.findFirst({
       where: { requestReference: input.reference, customer: { phoneNumber: input.phone_number } },
       include: {
+        customer: true,
         treatment: true,
         treatments: { include: { treatment: true }, orderBy: { displayOrder: 'asc' } },
       },
@@ -311,6 +308,11 @@ bookingRequestsRouter.get('/easy-lookup', async (req, res, next) => {
     ok(res, {
       request_reference: bookingRequest.requestReference,
       status: bookingRequest.status,
+      // The caller already proved they hold both the reference and the phone
+      // number, so the client's own contact details are safe to echo back.
+      customer_name: bookingRequest.customer.fullName,
+      phone_number: bookingRequest.customer.phoneNumber,
+      whatsapp_number: bookingRequest.customer.whatsappNumber,
       treatment_name: treatmentNamesFromBooking(bookingRequest),
       treatments: bookingRequest.treatments.map((row) => serializeTreatmentRef(row.treatment)),
       confirmed_date: bookingRequest.confirmedDate,

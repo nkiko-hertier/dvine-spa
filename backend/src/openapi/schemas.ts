@@ -120,23 +120,6 @@ export const bookingRequestSchema = registry.register(
     staff_notes: z.string().nullable(),
     cancellation_reason: z.string().nullable(),
     created_at: z.string().datetime(),
-    booked_services: z.array(
-      z.object({
-        id: z.string().uuid(),
-        treatment_id: z.string().uuid(),
-        service_name: z.string(),
-        price: z.string(),
-        display_order: z.number().int(),
-        status: z.enum(['pending', 'done', 'cancelled']),
-        resolved_at: z.string().datetime().nullable(),
-      }),
-    ).openapi({ description: 'One row per service, each with its own status (sql/009).' }),
-    services_summary: z.object({
-      total: z.number().int(),
-      pending: z.number().int(),
-      done: z.number().int(),
-      cancelled: z.number().int(),
-    }),
   }),
 );
 
@@ -163,6 +146,9 @@ export const bookingLookupResponseSchema = registry.register(
   z.object({
     request_reference: z.string(),
     status: bookingStatusSchema,
+    customer_name: z.string(),
+    phone_number: z.string(),
+    whatsapp_number: z.string().nullable(),
     treatment_name: z.string(),
     treatments: z.array(
       z.object({ id: z.string().uuid(), name: z.string(), price: z.string(), duration_minutes: z.number().int() }),

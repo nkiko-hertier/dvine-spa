@@ -7,7 +7,7 @@ import {
 } from './schemas.js';
 import {
   categoryCreateSchema, categoryUpdateSchema, treatmentCreateSchema, treatmentUpdateSchema,
-  bookingRequestCreateSchema, bookingRequestUpdateSchema, bookedServiceUpdateSchema, customerUpdateSchema,
+  bookingRequestCreateSchema, bookingRequestUpdateSchema, customerUpdateSchema,
   staffInviteSchema, staffUpdateSchema,
 } from '../schemas/index.js';
 
@@ -227,12 +227,6 @@ registry.registerPath({
   summary: 'Status transitions enforced server-side; invalid transitions return 409. cancellation_reason required when status=cancelled.',
   request: { params: z.object({ id: z.string().uuid() }), body: body(bookingRequestUpdateSchema) },
   responses: { 200: okJson('Updated', bookingRequestSchema), ...commonErrorResponses },
-});
-registry.registerPath({
-  method: 'patch', path: '/admin/booking-requests/{id}/services/{serviceId}', tags: ['Admin / Booking Requests'], security: bearerAuth,
-  summary: 'Mark one service pending / done / cancelled (booking must be confirmed). When none is left pending and at least one is done, the booking is completed automatically (booking_auto_completed: true).',
-  request: { params: z.object({ id: z.string().uuid(), serviceId: z.string().uuid() }), body: body(bookedServiceUpdateSchema) },
-  responses: { 200: okJson('Updated booking', bookingRequestSchema), ...commonErrorResponses },
 });
 
 // ------------------------------------------------------------

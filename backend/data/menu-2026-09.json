@@ -1,0 +1,127 @@
+{
+  "$comment": "D'Vine Spa treatment menu, transcribed from the owner's 'D'vine spa - galaxy UPDATED MENU.pdf' (September 2026). Source of truth for scripts/sync-menu.mjs. Prices in RWF. Waxing and nail durations are not printed on the menu; the values here are booking-slot estimates and can be edited in the dashboard. 'replaces' lists the names of the catalog entries the item supersedes, so the sync renames them in place (keeping their ids and booking history) instead of creating duplicates.",
+  "notes": [
+    "Mobile spa is available.",
+    "When you need 15 more minutes of massage you add 10,000 RWF.",
+    "When you need 30 more minutes of massage you add 15,000 RWF."
+  ],
+  "categories": [
+    {
+      "key": "massage",
+      "name": "Massage",
+      "replaces": ["Massage"],
+      "description": "Relax. Reconnect. Rejuvenate.",
+      "treatments": [
+        { "name": "D'Vine Signature Massage", "replaces": ["D'Vine Massage"], "duration_minutes": 90, "price": 60000, "description": "A unique combination of deep tissue, sports, and aromatherapy techniques focused on the spine, shoulders, joints, and body alignment. Helps relieve pain, restore flexibility, and promote deep relaxation." },
+        { "name": "Hot Stone Escape", "replaces": ["Hot Stone Massage"], "duration_minutes": 90, "price": 55000, "description": "A deeply relaxing massage using warm stones to relieve muscle tension, reduce pain, and calm the body." },
+        { "name": "Warm Candle Massage", "replaces": ["Candle Massage"], "duration_minutes": 60, "price": 45000, "description": "A nourishing massage using warm candle oil to hydrate, soften, and rejuvenate the skin." },
+        { "name": "Aroma Relax Massage", "replaces": ["Aromatherapy"], "duration_minutes": 60, "price": 40000, "description": "A calming massage using essential oils to reduce stress, improve mood, and relieve muscle tension." },
+        { "name": "Sports Recovery Massage", "replaces": ["Sport Massage"], "duration_minutes": 75, "price": 40000, "description": "Designed to improve flexibility, support recovery, and enhance physical performance." },
+        { "name": "Lomi Lomi Flow Massage", "replaces": ["Lomi Lomi Massage"], "duration_minutes": 60, "price": 40000, "description": "A traditional Hawaiian massage using flowing movements to release tension and improve circulation." },
+        { "name": "Four Hands Experience", "replaces": ["4 Hand Massage"], "duration_minutes": 45, "price": 50000, "description": "A luxurious massage performed by two therapists working in harmony for a deeply immersive experience." },
+        { "name": "Deep Tissue Massage", "replaces": ["Deep Tissue Massage"], "duration_minutes": 60, "price": 30000, "description": "A firm pressure massage ideal for chronic tension, muscle pain, and injury recovery." },
+        { "name": "Classic Relax Massage", "replaces": ["Swedish Massage"], "duration_minutes": 60, "price": 30000, "description": "A gentle full-body massage perfect for relaxation, stress relief, and first-time spa clients." },
+        { "name": "Lymphatic Drainage Massage", "replaces": [], "duration_minutes": 60, "price": 40000, "description": "A gentle therapy that supports detox, reduces water retention, and improves circulation." },
+        { "name": "Foot Relax Massage", "replaces": ["Foot Massage"], "duration_minutes": 20, "price": 15000, "description": "Revitalizes the body and boosts energy levels." },
+        { "name": "Full Back Stress Relief", "replaces": ["De-Stress Back Massage"], "duration_minutes": 45, "price": 25000, "description": "Relieves tension, stress, and muscle fatigue in the back area." },
+        { "name": "Back Pain Relief Massage", "replaces": ["Back Massage"], "duration_minutes": 20, "price": 15000, "description": "Helps reduce stress, muscle pain, and tension." },
+        { "name": "Head & Shoulder Relief", "replaces": ["Head & Neck and Shoulder Massage"], "duration_minutes": 20, "price": 15000, "description": "Helps relieve headaches, stress, and upper body tension." },
+        { "name": "Leg Recovery Massage", "replaces": ["Leg Massage"], "duration_minutes": 30, "price": 20000, "description": "Improves circulation and supports muscle recovery." },
+        { "name": "Mother-to-Be Relax Massage", "replaces": ["Prenatal Massage"], "duration_minutes": 75, "price": 40000, "description": "A gentle massage designed for pregnancy to relieve stress, pain, and improve sleep." }
+      ]
+    },
+    {
+      "key": "body",
+      "name": "Body Treatments",
+      "replaces": ["Body Treatment"],
+      "description": "Scrubs, wraps, steam and contouring to detox, glow and reset.",
+      "treatments": [
+        { "name": "Body Glow Scrub", "replaces": ["Full Body Scrub"], "duration_minutes": 30, "price": 25000, "description": "Exfoliates dead skin cells and promotes smooth, radiant skin." },
+        { "name": "Body Detox Wrap Ritual", "replaces": ["Body Wrap"], "duration_minutes": 90, "price": 50000, "description": "A full-body treatment combining scrub, wrap, and heat therapy to detoxify and refresh the body." },
+        { "name": "Detox Sauna Blanket", "replaces": ["Sauna Blanket"], "duration_minutes": 30, "price": 15000, "description": "A heat therapy treatment that promotes deep sweating, detoxification, and relaxation." },
+        { "name": "Herbal Steam Therapy", "replaces": [], "duration_minutes": 30, "price": 15000, "description": "A soothing steam treatment that opens pores, detoxifies the body, and promotes relaxation." },
+        { "name": "Back Glow Treatment", "replaces": [], "duration_minutes": 45, "price": 30000, "description": "A deep cleansing treatment that helps improve skin texture and clarity on the back." },
+        { "name": "Vajacial (Intimate Skin Care)", "replaces": [], "duration_minutes": 45, "price": 30000, "description": "Intimate care: a gentle treatment for the bikini area that cleanses, exfoliates, and helps reduce ingrown hairs while improving skin appearance." },
+        { "name": "Yoni Steam (Herbal Therapy)", "replaces": [], "duration_minutes": 15, "price": 10000, "description": "A gentle herbal steam designed for external intimate wellness, promoting relaxation and freshness." },
+        { "name": "Body Contouring (Wood Therapy)", "replaces": [], "duration_minutes": 90, "price": 60000, "description": "Maderotherapy: a powerful treatment combining wood therapy and deep massage to improve circulation, reduce cellulite, and sculpt the body." }
+      ]
+    },
+    {
+      "key": "facial",
+      "name": "Facial Treatments",
+      "replaces": ["Facials Treatment"],
+      "description": "Glow. Treat. Transform.",
+      "treatments": [
+        { "name": "Express Facial", "replaces": ["Classic Facial"], "duration_minutes": 30, "price": 20000, "description": "Quick cleanse, exfoliation & hydration boost.", "recommended_for": ["All skin types"] },
+        { "name": "Deep Cleansing Facial", "replaces": ["Refresh & Renew Facial"], "duration_minutes": 60, "price": 30000, "description": "Deep pore cleansing & blackhead removal.", "recommended_for": ["Oily & acne-prone skin"] },
+        { "name": "Brightening Facial", "replaces": [], "duration_minutes": 60, "price": 45000, "description": "Restores glow & evens skin tone.", "recommended_for": ["Dull & uneven skin"] },
+        { "name": "Hydra Glow Facial (Hydrafacial)", "replaces": [], "duration_minutes": 60, "price": 50000, "description": "Deep cleanse + intense hydration for instant glow.", "recommended_for": ["Dry & dehydrated skin", "All skin types"] },
+        { "name": "Oxygen Infusion Facial", "replaces": [], "duration_minutes": 60, "price": 50000, "description": "Oxygen & vitamins for fresh, radiant skin.", "recommended_for": ["Tired, dull & sensitive skin"] },
+        { "name": "Ultrasonic Facial Therapy", "replaces": [], "duration_minutes": 60, "price": 45000, "description": "Enhances product absorption for better results.", "recommended_for": ["All skin types"] },
+        { "name": "Skin Tightening Facial", "replaces": [], "duration_minutes": 75, "price": 60000, "description": "Firms skin & boosts collagen.", "recommended_for": ["Mature & sagging skin"] },
+        { "name": "Acne Treatment Facial", "replaces": [], "duration_minutes": 60, "price": 45000, "description": "Targets breakouts & controls excess oil.", "recommended_for": ["Acne-prone & oily skin"] },
+        { "name": "Sensitive Skin Facial", "replaces": ["Men's Facial"], "duration_minutes": 60, "price": 40000, "description": "Calms, soothes & reduces redness.", "recommended_for": ["Sensitive & reactive skin"] },
+        { "name": "Anti-Aging Facial", "replaces": ["Anti-Aging Facial"], "duration_minutes": 75, "price": 60000, "description": "Smooths fine lines & restores elasticity.", "recommended_for": ["Mature & aging skin"] },
+        { "name": "D'Vine Signature Facial", "replaces": [], "duration_minutes": 90, "price": 70000, "description": "Luxury all-in-one facial for ultimate results.", "recommended_for": ["All skin types"] },
+        { "name": "Face Massage (Add-on)", "replaces": [], "duration_minutes": 15, "price": 10000, "description": "Add-on: relaxing lift & circulation boost." },
+        { "name": "LED Light Therapy (Add-on)", "replaces": [], "duration_minutes": 15, "price": 10000, "description": "Add-on: targets acne, aging & skin repair." },
+        { "name": "Extra Mask (Add-on)", "replaces": [], "duration_minutes": 10, "price": 5000, "description": "Add-on: customized boost for your skin." }
+      ]
+    },
+    {
+      "key": "nails",
+      "name": "Nail Care",
+      "replaces": ["Nail Treatment"],
+      "description": "Natural finish. Clean. Neat. Healthy Nails.",
+      "treatments": [
+        { "name": "Classic Manicure (No Polish)", "replaces": ["Full Manicure"], "duration_minutes": 30, "price": 10000, "description": "Hand care: shaping, cuticle care and buffing for a clean natural finish." },
+        { "name": "Mini Manicure", "replaces": ["Mini Manicure"], "duration_minutes": 20, "price": 5000, "description": "Hand care: quick shape and tidy-up." },
+        { "name": "Classic Pedicure (No Polish)", "replaces": ["Full Pedicure"], "duration_minutes": 45, "price": 20000, "description": "Foot care: soak, exfoliation, cuticle care and buffing for a clean natural finish." },
+        { "name": "Mini Pedicure", "replaces": ["Mini Pedicure"], "duration_minutes": 30, "price": 15000, "description": "Foot care: quick shape and tidy-up." },
+        { "name": "Classic Manicure & Pedicure (No Polish)", "replaces": [], "duration_minutes": 75, "price": 25000, "description": "Hands and feet together, natural finish." },
+        { "name": "Mini Manicure & Pedicure (No Polish)", "replaces": [], "duration_minutes": 50, "price": 15000, "description": "Quick hands and feet tidy-up, natural finish." }
+      ]
+    },
+    {
+      "key": "waxing",
+      "name": "Waxing",
+      "replaces": ["Waxing"],
+      "description": "Smooth. Clean. Confident.",
+      "treatments": [
+        { "name": "Brazilian Wax", "replaces": ["Full Bikini"], "duration_minutes": 30, "price": 30000 },
+        { "name": "Brazilian Wax (Beginner)", "replaces": ["Full Bikini for Beginner"], "duration_minutes": 45, "price": 35000, "description": "A gentler first-time Brazilian, taken in stages." },
+        { "name": "Bikini Wax", "replaces": ["Bikini Line"], "duration_minutes": 20, "price": 25000 },
+        { "name": "Underarm Wax", "replaces": [], "duration_minutes": 10, "price": 7000 },
+        { "name": "Full Leg Wax", "replaces": ["Full Leg Wax"], "duration_minutes": 30, "price": 28000 },
+        { "name": "Half Leg Wax", "replaces": ["Half Leg"], "duration_minutes": 20, "price": 20000 },
+        { "name": "Full Arm Wax", "replaces": ["Full Arm Wax"], "duration_minutes": 20, "price": 15000 },
+        { "name": "Half Arm Wax", "replaces": ["Half Arm"], "duration_minutes": 15, "price": 10000 },
+        { "name": "Stomach Wax", "replaces": ["Stomach / Chest"], "duration_minutes": 15, "price": 15000 },
+        { "name": "Chest Wax", "replaces": [], "duration_minutes": 20, "price": 15000 },
+        { "name": "Back Wax", "replaces": ["Back Wax"], "duration_minutes": 30, "price": 25000 },
+        { "name": "Buttocks Wax", "replaces": ["Buttocks Waxing"], "duration_minutes": 15, "price": 15000 },
+        { "name": "Face Wax", "replaces": ["Face Wax"], "duration_minutes": 15, "price": 15000 },
+        { "name": "Upper Lip Wax", "replaces": [], "duration_minutes": 10, "price": 5000 },
+        { "name": "Chin Wax", "replaces": [], "duration_minutes": 10, "price": 5000 },
+        { "name": "Nose Wax", "replaces": [], "duration_minutes": 10, "price": 5000 },
+        { "name": "Upper Lip + Chin Wax", "replaces": [], "duration_minutes": 15, "price": 8000 },
+        { "name": "After Wax Care", "replaces": [], "duration_minutes": 10, "price": 5000, "description": "Soothing post-wax treatment to calm the skin and prevent ingrown hairs." }
+      ]
+    },
+    {
+      "key": "packages",
+      "name": "Packages",
+      "replaces": ["Packages"],
+      "description": "D'Vine Spa packages. Relax. Reconnect. Rejuvenate.",
+      "treatments": [
+        { "name": "D'Vine Signature Ritual", "replaces": ["D'Vine Package"], "duration_minutes": 180, "price": 100000, "description": "Luxury body scrub + deep cleansing facial + D'Vine massage. Our ultimate full-body experience." },
+        { "name": "Romantic Escape for Two", "replaces": ["Romantic Rejuvenation (Couple)", "Couple's Bliss Journey"], "duration_minutes": 150, "price": 150000, "description": "Side-by-side hot stone massage + ambiance + optional scrub. Relax and reconnect together. Price is for two guests." },
+        { "name": "Bridal Glow Luxe", "replaces": ["Bridal Refreshment"], "duration_minutes": 270, "price": 150000, "description": "Full body scrub + steam + body wrap + hot stone or candle massage + deep cleansing facial + waxing (Brazilian & underarm) + yoni steam + complimentary vajacial. Ultimate glow and relaxation for your special day (4 to 5 hours)." },
+        { "name": "Gentleman's Escape", "replaces": ["Men's Moment"], "duration_minutes": 150, "price": 85000, "description": "Sports massage + express facial + steam or scrub + foot care. Total recovery and relaxation for men." },
+        { "name": "Calm & Restore Ritual", "replaces": ["Detox Package"], "duration_minutes": 120, "price": 60000, "description": "Steam + body scrub + relaxing massage. Detox, glow and deep relaxation." },
+        { "name": "Ruhuka Retreat", "replaces": ["Ruhuka Package"], "duration_minutes": 120, "price": 60000, "description": "Body scrub + relaxing full body massage + foot treatment. Perfect stress relief escape." },
+        { "name": "Umutuzo Time", "replaces": ["Stress Relief"], "duration_minutes": 90, "price": 40000, "description": "Steam + relaxing massage. Calm your body and mind." }
+      ]
+    }
+  ]
+}

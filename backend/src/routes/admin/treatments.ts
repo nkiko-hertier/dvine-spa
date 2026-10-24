@@ -7,7 +7,6 @@ import { parseOrThrow } from '../../lib/validate.js';
 import { asString, parseSort } from '../../lib/queryParams.js';
 import { treatmentCreateSchema, treatmentUpdateSchema } from '../../schemas/index.js';
 import { serializeTreatment } from '../../lib/serializers.js';
-import { treatmentHasBookings } from '../../lib/treatmentUsage.js';
 
 export const adminTreatmentsRouter = Router();
 
@@ -115,18 +114,17 @@ adminTreatmentsRouter.patch('/:id', async (req, res, next) => {
  * DELETE /admin/treatments/:id
  *
  * Hard delete when this treatment has never been booked. Otherwise falls
- * back to a soft delete (isActive=false). booking_requests.treatment_id and
- * booking_request_treatments.treatment_id are both ON DELETE RESTRICT, so a
- * hard delete would fail anyway once a booking references it.
+ * back to a soft delete (isActive=false), booking_requests.treatment_id
+ * is ON DELETE RESTRICT, so a hard delete would fail anyway once a
+ * booking exists.
  */
 adminTreatmentsRouter.delete('/:id', async (req, res, next) => {
   try {
     const existing = await prisma.treatment.findUnique({ where: { id: req.params.id } });
     if (!existing) throw AppError.notFound('Treatment not found.');
 
-    // Used as the primary service OR as an extra service on a multi-service
-    // booking (booking_request_treatments is ON DELETE RESTRICT too).
-    if (!(await treatmentHasBookings(existing.id))) {
+    const bookingCount = await prisma.bookingRequest.count({ where: { treatmentId: existing.id } });
+    if (bookingCount === 0) {
       await prisma.treatment.delete({ where: { id: existing.id } });
       ok(res, { id: existing.id, deleted: true });
       return;

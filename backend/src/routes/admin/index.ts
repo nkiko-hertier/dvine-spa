@@ -10,6 +10,7 @@ import { adminAuditLogsRouter } from './auditLogs.js';
 import { adminDashboardRouter } from './dashboard.js';
 import { adminStaffRouter } from './staff.js';
 import { adminMeRouter } from './me.js';
+import { adminPushRouter } from './push.js';
 
 export const adminRouter = Router();
 
@@ -26,6 +27,9 @@ adminRouter.use('/audit-logs', adminAuditLogsRouter);
 adminRouter.use('/dashboard', adminDashboardRouter);
 
 adminRouter.use('/me', adminMeRouter);
+
+// Phone notifications for the signed-in staff member's own devices.
+adminRouter.use('/push', adminPushRouter);
 
 // Staff management is admin-only per the role matrix in §2.4.
 adminRouter.use('/staff', requireRole(UserRole.admin), adminStaffRouter);

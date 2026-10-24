@@ -6,7 +6,7 @@ declare global {
       /**
        * Set by requireAuth (src/middleware/auth.ts) after verifying the
        * Clerk session and resolving it to a local staff row. Only present
-       * on routes behind requireAuth — undefined everywhere else.
+       * on routes behind requireAuth, undefined everywhere else.
        */
       staff?: Staff;
     }

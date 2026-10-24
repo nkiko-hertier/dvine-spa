@@ -38,7 +38,7 @@ function serializeStaff(staff: {
   };
 }
 
-/** GET /admin/staff — admin only */
+/** GET /admin/staff, admin only */
 adminStaffRouter.get('/', async (req, res, next) => {
   try {
     const { page, limit, offset } = parsePagination(req.query);
@@ -63,14 +63,14 @@ adminStaffRouter.get('/', async (req, res, next) => {
 });
 
 /**
- * POST /admin/staff/invite — admin only. Does NOT insert into `staff`
- * directly — sends a Clerk invitation; the row is created by the
+ * POST /admin/staff/invite, admin only. Does NOT insert into `staff`
+ * directly, sends a Clerk invitation; the row is created by the
  * user.created webhook once accepted (§3.3, §9).
  *
  * Reinvite behaviour: if a still-pending Clerk invitation already exists for
  * this email, it is revoked first (killing the old link) and a fresh one is
- * issued with the latest role / name. Clerk has no "resend" endpoint —
- * revoke + recreate is the supported path — and `ignoreExisting: true` keeps
+ * issued with the latest role / name. Clerk has no "resend" endpoint,
+ * revoke + recreate is the supported path, and `ignoreExisting: true` keeps
  * the create from failing on the leftover record if the revoke didn't catch it.
  */
 adminStaffRouter.post('/invite', async (req, res, next) => {
@@ -98,7 +98,7 @@ adminStaffRouter.post('/invite', async (req, res, next) => {
         reinvited = true;
       }
     } catch (revokeErr) {
-      // Non-fatal — fall through to createInvitation (ignoreExisting handles the
+      // Non-fatal, fall through to createInvitation (ignoreExisting handles the
       // leftover) so a listing/revoke hiccup never blocks issuing the invite.
       logger.warn({ err: revokeErr, email: input.email }, 'Could not revoke prior invitation(s) before reinvite.');
     }
@@ -123,7 +123,7 @@ adminStaffRouter.post('/invite', async (req, res, next) => {
   }
 });
 
-/** PATCH /admin/staff/:id — admin only. Role changes sync back to Clerk. */
+/** PATCH /admin/staff/:id, admin only. Role changes sync back to Clerk. */
 adminStaffRouter.patch('/:id', async (req, res, next) => {
   try {
     const input = parseOrThrow(staffUpdateSchema, req.body);
@@ -146,7 +146,7 @@ adminStaffRouter.patch('/:id', async (req, res, next) => {
         });
       } catch (clerkErr) {
         // DB is the record of truth here; log and continue rather than
-        // fail the whole request if Clerk sync hiccups — the next
+        // fail the whole request if Clerk sync hiccups, the next
         // user.updated webhook (or a retry) will reconcile it.
         logger.error({ err: clerkErr, staffId: staff.id }, 'Failed to sync role change to Clerk.');
       }
@@ -158,7 +158,7 @@ adminStaffRouter.patch('/:id', async (req, res, next) => {
   }
 });
 
-/** DELETE /admin/staff/:id — admin only. Soft delete + revoke Clerk sessions. */
+/** DELETE /admin/staff/:id, admin only. Soft delete + revoke Clerk sessions. */
 adminStaffRouter.delete('/:id', async (req, res, next) => {
   try {
     const existing = await prisma.staff.findUnique({ where: { id: req.params.id } });
@@ -182,11 +182,11 @@ adminStaffRouter.delete('/:id', async (req, res, next) => {
 });
 
 /**
- * DELETE /admin/staff/:id/permanent — admin only. HARD delete.
+ * DELETE /admin/staff/:id/permanent, admin only. HARD delete.
  *
  * Removes the linked Clerk user (so the person can never sign in again) AND
  * the local `staff` row entirely. Historical `audit_logs` survive with a null
- * actor (`audit_logs.user_id` is ON DELETE SET NULL). Irreversible — the plain
+ * actor (`audit_logs.user_id` is ON DELETE SET NULL). Irreversible, the plain
  * DELETE /:id soft delete stays the default, gentler action.
  */
 adminStaffRouter.delete('/:id/permanent', async (req, res, next) => {
@@ -206,7 +206,7 @@ adminStaffRouter.delete('/:id/permanent', async (req, res, next) => {
       } catch (clerkErr) {
         const status = (clerkErr as { status?: number })?.status;
         if (status !== 404) {
-          logger.error({ err: clerkErr, staffId: existing.id }, 'Failed to delete Clerk user — aborting hard delete.');
+          logger.error({ err: clerkErr, staffId: existing.id }, 'Failed to delete Clerk user, aborting hard delete.');
           throw AppError.internal('Could not remove the linked Clerk account. Nothing was deleted.');
         }
       }

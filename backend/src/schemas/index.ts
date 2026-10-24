@@ -134,14 +134,6 @@ export const bookingRequestLookupSchema = z.object({
   phone_number: z.string().min(6).max(20),
 });
 
-export const BOOKED_SERVICE_STATUSES = ['pending', 'done', 'cancelled'] as const;
-export const bookedServiceStatusSchema = z.enum(BOOKED_SERVICE_STATUSES);
-
-/** PATCH /admin/booking-requests/:id/services/:serviceId */
-export const bookedServiceUpdateSchema = z.object({
-  status: bookedServiceStatusSchema,
-});
-
 /** PATCH /admin/booking-requests/:id, API_DOCUMENTATION.md §8.5 */
 export const bookingRequestUpdateSchema = z
   .object({

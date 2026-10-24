@@ -8,7 +8,7 @@ import { serializeAuditLog } from '../../lib/serializers.js';
 export const adminAuditLogsRouter = Router();
 
 /**
- * GET /admin/audit-logs — §10. Read-only: rows are written exclusively by
+ * GET /admin/audit-logs, §10. Read-only: rows are written exclusively by
  * the log_booking_status_change DB trigger, never by this API.
  */
 adminAuditLogsRouter.get('/', async (req, res, next) => {

@@ -1,10 +1,10 @@
 /**
- * email.ts — thin send/retry wrapper around a transactional email provider.
+ * email.ts: thin send/retry wrapper around a transactional email provider.
  *
  * Provider selection (decided once at module load):
- *  1. Google SMTP — when GMAIL_USER and GMAIL_APP_PASSWORD are both set.
- *  2. SendGrid    — when SENDGRID_API_KEY is set.
- *  3. Neither     — every call is a no-op with a warning log, so the app
+ *  1. Google SMTP, when GMAIL_USER and GMAIL_APP_PASSWORD are both set.
+ *  2. SendGrid   , when SENDGRID_API_KEY is set.
+ *  3. Neither    , every call is a no-op with a warning log, so the app
  *                   behaves identically to running with no email configured.
  *
  * Rules:
@@ -45,7 +45,7 @@ if (provider === 'gmail') {
   sgMail.setApiKey(env.SENDGRID_API_KEY!);
   logger.info('Email provider: SendGrid.');
 } else {
-  logger.warn('No email provider configured (set GMAIL_USER + GMAIL_APP_PASSWORD, or SENDGRID_API_KEY) — emails will be skipped.');
+  logger.warn('No email provider configured (set GMAIL_USER + GMAIL_APP_PASSWORD, or SENDGRID_API_KEY), emails will be skipped.');
 }
 
 export interface SendArgs {
@@ -76,12 +76,12 @@ async function deliver({ to, subject, html }: SendArgs): Promise<void> {
 
 /**
  * Send a single transactional email. Never throws; logs on failure.
- * Callers should NOT await this in a way that holds up the HTTP response —
+ * Callers should NOT await this in a way that holds up the HTTP response,
  * use the fire-and-forget pattern: `void sendEmail(...).catch(...)`.
  */
 export async function sendEmail({ to, subject, html }: SendArgs): Promise<void> {
   if (provider === 'none') {
-    logger.warn({ to, subject }, 'No email provider configured — email skipped.');
+    logger.warn({ to, subject }, 'No email provider configured, email skipped.');
     return;
   }
 
@@ -92,8 +92,8 @@ export async function sendEmail({ to, subject, html }: SendArgs): Promise<void> 
       return;
     } catch (err) {
       if (attempt === 2) {
-        logger.error({ err, to, subject, provider }, 'Failed to send email after retry — swallowing error.');
-        return; // swallow — caller never sees this as a booking failure
+        logger.error({ err, to, subject, provider }, 'Failed to send email after retry, swallowing error.');
+        return; // swallow, caller never sees this as a booking failure
       }
       await new Promise((r) => setTimeout(r, 500)); // brief backoff before the one retry
     }

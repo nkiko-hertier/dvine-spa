@@ -7,7 +7,6 @@ import { parseOrThrow } from '../../lib/validate.js';
 import { asString, parseSort } from '../../lib/queryParams.js';
 import { customerUpdateSchema, customerSourceSchema, clientTypeSchema } from '../../schemas/index.js';
 import { serializeCustomer, serializeCustomerSummary } from '../../lib/serializers.js';
-import { mostCommonTreatmentForCustomer } from '../../lib/treatmentUsage.js';
 
 export const adminCustomersRouter = Router();
 
@@ -57,9 +56,8 @@ adminCustomersRouter.get('/:id', async (req, res, next) => {
     const summary = await prisma.customerSummary.findFirst({ where: { id: req.params.id } });
     if (!summary) throw AppError.notFound('Customer not found.');
 
-    const [customer, mostCommon, recentBookings] = await Promise.all([
+    const [customer, recentBookings] = await Promise.all([
       prisma.customer.findUnique({ where: { id: req.params.id } }),
-      mostCommonTreatmentForCustomer(req.params.id),
       prisma.bookingRequest.findMany({
         where: { customerId: req.params.id },
         orderBy: { createdAt: 'desc' },
@@ -74,18 +72,6 @@ adminCustomersRouter.get('/:id', async (req, res, next) => {
     ok(res, {
       ...serializeCustomerSummary(summary),
       notes: customer?.notes ?? null,
-      email: customer?.email ?? null,
-      // Across every service on every booking (not just the 10 shown below);
-      // pre-fills the dashboard's "Add Appointment" shortcut.
-      most_common_treatment: mostCommon
-        ? {
-            id: mostCommon.id,
-            name: mostCommon.name,
-            price: Number(mostCommon.price).toFixed(2),
-            duration_minutes: mostCommon.duration_minutes,
-            times_booked: mostCommon.times,
-          }
-        : null,
       recent_bookings: recentBookings.map((b) => {
         const names = (b.treatments ?? [])
           .map((row) => row.treatment.name)
@@ -93,7 +79,6 @@ adminCustomersRouter.get('/:id', async (req, res, next) => {
         return {
           id: b.id,
           request_reference: b.requestReference,
-          treatment_id: b.treatmentId,
           treatment_name: names.length ? names.join(', ') : b.treatment.name,
           preferred_date: b.preferredDate,
           status: b.status,

@@ -101,7 +101,6 @@ model Treatment {
   category                 Category?                 @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   bookingRequests          BookingRequest[]
   bookingRequestTreatments BookingRequestTreatment[]
-  bookedServices           BookedService[]
 
   @@index([categoryId], map: "idx_treatments_category")
   @@index([isActive], map: "idx_treatments_active")
@@ -127,17 +126,7 @@ model Customer {
   @@index([phoneNumber], map: "idx_customers_phone")
   @@index([source], map: "idx_customers_source")
   @@index([customerSince], map: "idx_customers_since")
-  // Serves max(updated_at) for the dashboard change-version poll (sql/008).
-  @@index([updatedAt], map: "idx_customers_updated")
   @@map("customers")
-}
-
-enum BookedServiceStatus {
-  pending
-  done
-  cancelled
-
-  @@map("booked_service_status")
 }
 
 model BookingRequest {
@@ -169,8 +158,6 @@ model BookingRequest {
   customer   Customer                  @relation(fields: [customerId], references: [id], onDelete: Restrict)
   treatment  Treatment                 @relation(fields: [treatmentId], references: [id], onDelete: Restrict)
   treatments BookingRequestTreatment[]
-  // One row per service with its own status (sql/009).
-  bookedServices BookedService[]
   auditLogs  AuditLog[]
 
   @@index([customerId], map: "idx_booking_requests_customer")
@@ -181,8 +168,6 @@ model BookingRequest {
   @@index([channel], map: "idx_booking_requests_channel")
   @@index([source], map: "idx_booking_requests_source")
   @@index([status, preferredDate], map: "idx_booking_requests_status_date")
-  // Serves max(updated_at) for the dashboard change-version poll (sql/008).
-  @@index([updatedAt], map: "idx_booking_requests_updated")
   @@map("booking_requests")
 }
 
@@ -200,34 +185,6 @@ model BookingRequestTreatment {
   @@index([treatmentId], map: "idx_brt_treatment")
   @@index([bookingRequestId], map: "idx_brt_booking")
   @@map("booking_request_treatments")
-}
-
-/// One row per service on a booking, each with its own status (sql/009).
-/// Created with the booking; staff mark each done or cancelled from the
-/// dashboard. The booking can be completed only when none is pending.
-model BookedService {
-  id           String                  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  bookingId    String                  @map("booking_id") @db.Uuid
-  treatmentId  String                  @map("treatment_id") @db.Uuid
-  /// Treatment name frozen at booking time.
-  serviceName  String                  @map("service_name") @db.VarChar(150)
-  /// Unit price (per guest) frozen at booking time.
-  price        Decimal                 @default(0) @db.Decimal(10, 2)
-  displayOrder Int                     @default(0) @map("display_order")
-  status       BookedServiceStatus     @default(pending)
-  resolvedAt   DateTime?               @map("resolved_at") @db.Timestamp(6)
-  createdAt    DateTime                @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt    DateTime                @default(now()) @map("updated_at") @db.Timestamp(6)
-
-  booking   BookingRequest @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  treatment Treatment      @relation(fields: [treatmentId], references: [id], onDelete: Restrict)
-
-  @@unique([bookingId, treatmentId], map: "uq_booked_services_booking_treatment")
-  @@index([bookingId], map: "idx_booked_services_booking")
-  @@index([treatmentId], map: "idx_booked_services_treatment")
-  @@index([bookingId, status], map: "idx_booked_services_status")
-  @@index([updatedAt], map: "idx_booked_services_updated")
-  @@map("booked_services")
 }
 
 model Staff {

@@ -13,13 +13,13 @@ const RECONNECT_DELAY_MS = 2000;
  * Owns a single dedicated `pg` connection (Prisma's connection pool doesn't
  * expose LISTEN/NOTIFY) subscribed to the channels populated by
  * sql/003_realtime_notifications.sql's triggers. Reconnects automatically
- * on drop — `pg` does not resubscribe LISTEN channels for you after a
+ * on drop, `pg` does not resubscribe LISTEN channels for you after a
  * connection error, so this has to re-issue LISTEN on every reconnect.
  *
  * Safe to run on more than one API instance: `pg_notify` broadcasts to
  * every LISTENing connection, and per API_DOCUMENTATION.md §12.6 the
  * resulting duplicate Socket.IO emits are deduped by the Redis adapter
- * once that's introduced — not needed at the current single-instance scale.
+ * once that's introduced, not needed at the current single-instance scale.
  */
 export class PgListener {
   private client: Client | null = null;
@@ -47,7 +47,7 @@ export class PgListener {
     if (this.stopped) return;
 
     if (!env.DATABASE_URL) {
-      logger.warn('DATABASE_URL not set — realtime Postgres LISTEN bridge will not start.');
+      logger.warn('DATABASE_URL not set, realtime Postgres LISTEN bridge will not start.');
       return;
     }
 
@@ -64,13 +64,13 @@ export class PgListener {
     });
 
     client.on('error', (err) => {
-      logger.error({ err }, 'Postgres LISTEN connection error — reconnecting.');
+      logger.error({ err }, 'Postgres LISTEN connection error, reconnecting.');
       this.scheduleReconnect();
     });
 
     client.on('end', () => {
       if (!this.stopped) {
-        logger.warn('Postgres LISTEN connection closed unexpectedly — reconnecting.');
+        logger.warn('Postgres LISTEN connection closed unexpectedly, reconnecting.');
         this.scheduleReconnect();
       }
     });
@@ -83,7 +83,7 @@ export class PgListener {
       this.client = client;
       logger.info({ channels: CHANNELS }, 'Postgres LISTEN bridge connected.');
     } catch (err) {
-      logger.error({ err }, 'Failed to establish Postgres LISTEN connection — retrying.');
+      logger.error({ err }, 'Failed to establish Postgres LISTEN connection, retrying.');
       this.scheduleReconnect();
     }
   }

@@ -23,7 +23,7 @@ export function assertValidTransition(from: BookingStatus, to: BookingStatus): v
   if (!ALLOWED_TRANSITIONS[from].includes(to)) {
     throw AppError.conflict(
       `Cannot move a booking request from '${from}' to '${to}'. Valid next states from '${from}': ${
-        ALLOWED_TRANSITIONS[from].length ? ALLOWED_TRANSITIONS[from].join(', ') : '(none — this is a terminal state)'
+        ALLOWED_TRANSITIONS[from].length ? ALLOWED_TRANSITIONS[from].join(', ') : '(none, this is a terminal state)'
       }.`,
     );
   }

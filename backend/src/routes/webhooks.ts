@@ -32,11 +32,11 @@ interface ClerkEvent {
 }
 
 /**
- * POST /webhooks/clerk — see API_DOCUMENTATION.md §3.
+ * POST /webhooks/clerk, see API_DOCUMENTATION.md §3.
  *
  * Mounted with express.raw() so the exact bytes Clerk signed are what get
- * verified — this MUST be registered before the global express.json() in
- * app.ts, or Svix verification will fail against an already-parsed body.
+ * verified, this MUST be registered before the global express.json() in
+ * app.ts: or Svix verification will fail against an already-parsed body.
  */
 webhookRouter.post('/clerk', raw({ type: 'application/json' }), async (req, res, next) => {
   try {
@@ -66,7 +66,7 @@ webhookRouter.post('/clerk', raw({ type: 'application/json' }), async (req, res,
     }
 
     // Idempotency: svix-id is the unique event id, deduped via the DB
-    // unique constraint on (provider, event_id) — see §3.2.
+    // unique constraint on (provider, event_id), see §3.2.
     let stored;
     try {
       stored = await prisma.webhookEvent.create({
@@ -93,7 +93,7 @@ webhookRouter.post('/clerk', raw({ type: 'application/json' }), async (req, res,
         where: { id: stored.id },
         data: { status: 'failed', errorMessage: String(handlerErr) },
       });
-      // Re-throw so Clerk sees a non-2xx and retries — webhook_events.status
+      // Re-throw so Clerk sees a non-2xx and retries, webhook_events.status
       // stays 'failed' for monitoring per API_DOCUMENTATION.md Appendix A/§10.
       throw handlerErr;
     }
@@ -111,7 +111,7 @@ async function handleClerkEvent(event: ClerkEvent): Promise<void> {
       const data = event.data as ClerkUserEventData;
       const email = data.email_addresses.find((e) => e.id === data.primary_email_address_id)?.email_address;
       if (!email) {
-        logger.warn({ clerkUserId: data.id }, 'Clerk user event with no primary email — skipping staff sync.');
+        logger.warn({ clerkUserId: data.id }, 'Clerk user event with no primary email, skipping staff sync.');
         return;
       }
       const fullName =
@@ -138,7 +138,7 @@ async function handleClerkEvent(event: ClerkEvent): Promise<void> {
       break;
     }
     default:
-      // Unhandled event types are fine to no-op — Clerk sends many more
+      // Unhandled event types are fine to no-op, Clerk sends many more
       // event types than we care about.
       break;
   }

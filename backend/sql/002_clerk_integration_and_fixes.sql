@@ -91,7 +91,7 @@ BEGIN
     v_year_part := TO_CHAR(NEW.created_at, 'YYYY');
 
     -- NOTE: the INSERT target column is unqualified `year_part`, which is
-    -- fine — the ambiguity Postgres complains about is between a *bare*
+    -- fine, the ambiguity Postgres complains about is between a *bare*
     -- identifier used as a value/conflict-target and a same-named PL/pgSQL
     -- variable. Prefixing the variable (v_year_part, v_seq_num) avoids it;
     -- do not rename these back to match the column names.
@@ -101,12 +101,12 @@ BEGIN
         DO UPDATE SET last_seq = request_reference_counters.last_seq + 1
     RETURNING last_seq INTO v_seq_num;
 
-    NEW.request_reference := 'DV-' || v_year_part || '-' || LPAD(v_seq_num::TEXT, 6, '0');
+    NEW.request_reference := 'PS-' || v_year_part || '-' || LPAD(v_seq_num::TEXT, 6, '0');
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 -- Trigger `set_request_reference` already points at this function name,
--- so no trigger changes are needed — CREATE OR REPLACE is enough.
+-- so no trigger changes are needed, CREATE OR REPLACE is enough.
 
 -- ------------------------------------------------------------
 -- 4. BOOKING CHANNEL

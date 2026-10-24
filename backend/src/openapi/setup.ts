@@ -6,7 +6,7 @@ extendZodWithOpenApi(z);
 export const registry = new OpenAPIRegistry();
 
 // ------------------------------------------------------------
-// Envelope helpers — every response follows API_DOCUMENTATION.md §4.1
+// Envelope helpers, every response follows API_DOCUMENTATION.md §4.1
 // ------------------------------------------------------------
 
 export const errorEnvelopeSchema = registry.register(

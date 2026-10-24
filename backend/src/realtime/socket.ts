@@ -9,7 +9,7 @@ import { PgListener } from './pgListener.js';
 const DASHBOARD_ROOM = 'dashboard';
 
 // socket.io types Socket.data as `any` by default (it's a generic
-// SocketData type param) — this just documents the shape we rely on
+// SocketData type param), this just documents the shape we rely on
 // rather than trying to (incorrectly) re-declare Socket, which is a
 // class in socket.io's types and doesn't merge via `interface` augmentation.
 interface DashboardSocketData {
@@ -19,12 +19,12 @@ interface DashboardSocketData {
 
 /**
  * Mounts Socket.IO on the same HTTP server as Express (never a second
- * server — see API_DOCUMENTATION.md §12.2) and wires it to Postgres
+ * server, see API_DOCUMENTATION.md §12.2) and wires it to Postgres
  * LISTEN/NOTIFY so any DB write reaches connected dashboards, not just
  * ones made through this API instance.
  *
  * Auth happens once at handshake using the same Clerk session token as
- * REST calls (§12.2) — there is no separate realtime token. All staff
+ * REST calls (§12.2), there is no separate realtime token. All staff
  * currently join one shared room; see API_DOCUMENTATION.md's Open
  * Decisions table re: role-scoped rooms, deliberately not built yet.
  */
@@ -41,7 +41,7 @@ export function initRealtime(httpServer: HttpServer): { io: SocketIOServer; pgLi
         return;
       }
       if (!env.CLERK_SECRET_KEY) {
-        logger.warn('CLERK_SECRET_KEY not set — rejecting socket handshake.');
+        logger.warn('CLERK_SECRET_KEY not set, rejecting socket handshake.');
         next(new Error('unauthorized'));
         return;
       }
@@ -73,7 +73,7 @@ export function initRealtime(httpServer: HttpServer): { io: SocketIOServer; pgLi
     });
   });
 
-  // §12.3 — bridges Postgres pg_notify to Socket.IO events. `booking_updates`
+  // §12.3, bridges Postgres pg_notify to Socket.IO events. `booking_updates`
   // carries the full row diff; `dashboard_notifications` is the lighter
   // "toast" feed (new requests, cancellations, no-shows).
   const pgListener = new PgListener((channel, payload) => {

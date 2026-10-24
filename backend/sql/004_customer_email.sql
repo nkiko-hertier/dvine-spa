@@ -14,5 +14,5 @@ ALTER TABLE customers ADD CONSTRAINT customers_email_format_chk
   );
 
 COMMENT ON COLUMN customers.email IS
-  'Optional customer email. Nullable — most historical rows will be NULL. '
+  'Optional customer email. Nullable, most historical rows will be NULL. '
   'Populated from the public booking form or by staff via the admin Customers page.';

@@ -14,11 +14,17 @@ export const notFoundHandler: RequestHandler = (req, res) => {
 };
 
 /**
- * Global error handler — must be registered last, after all routes.
+ * Global error handler, must be registered last, after all routes.
  * Maps AppError, ZodError (validation), and unknown errors to
  * { success: false, error: {...} } per API_DOCUMENTATION.md §4.1–4.2.
  */
 export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
+  // Never let the CDN keep an error response (publicCache sets a long
+  // s-maxage on the catalog routes before the handler runs).
+  res.setHeader('Cache-Control', 'no-store');
+  res.removeHeader('CDN-Cache-Control');
+  res.removeHeader('Vercel-CDN-Cache-Control');
+
   if (err instanceof AppError) {
     res.status(err.status).json({
       success: false,

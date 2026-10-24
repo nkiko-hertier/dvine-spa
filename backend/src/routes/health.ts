@@ -8,7 +8,7 @@ export const healthRouter = Router();
  * GET /health
  * Unauthenticated liveness check. Reports DB connectivity via Prisma;
  * still returns 200 with database:"error" rather than 503, so container
- * orchestrators don't flap the process on a transient DB blip — adjust
+ * orchestrators don't flap the process on a transient DB blip, adjust
  * if your deploy target expects a hard failure instead.
  */
 healthRouter.get('/health', async (_req, res) => {

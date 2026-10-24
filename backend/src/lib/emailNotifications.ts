@@ -1,5 +1,5 @@
 /**
- * emailNotifications.ts — orchestration layer.
+ * emailNotifications.ts: orchestration layer.
  *
  * Routes call these functions. Each one:
  *   1. Resolves recipient(s).
@@ -7,7 +7,7 @@
  *   3. Builds the template.
  *   4. Calls sendEmail / sendEmailToMany (fire-and-forget at the call site).
  *
- * This layer never throws — both sendEmail and the template functions are
+ * This layer never throws, both sendEmail and the template functions are
  * defensive, but we add a top-level try/catch here as the final safety net
  * so an unexpected bug doesn't propagate into route handlers.
  *
@@ -42,7 +42,17 @@ import { logger } from './logger.js';
 type BookingWithRelations = BookingRequest & {
   customer: Customer;
   treatment: Treatment;
+  treatments?: { treatment: Treatment; displayOrder: number }[];
 };
+
+function treatmentDisplayName(b: BookingWithRelations): string {
+  const extras = (b.treatments ?? [])
+    .slice()
+    .sort((a, c) => a.displayOrder - c.displayOrder)
+    .map((row) => row.treatment.name);
+  if (extras.length) return extras.join(', ');
+  return b.treatment.name;
+}
 
 function buildContext(b: BookingWithRelations): BookingEmailContext {
   return {
@@ -50,7 +60,7 @@ function buildContext(b: BookingWithRelations): BookingEmailContext {
     customerName: b.customer.fullName,
     customerPhone: b.customer.phoneNumber,
     customerEmail: b.customer.email,
-    treatmentName: b.treatment.name,
+    treatmentName: treatmentDisplayName(b),
     preferredDate: b.preferredDate,
     preferredTime: b.preferredTime,
     confirmedDate: b.confirmedDate,
@@ -74,7 +84,7 @@ async function fetchActiveStaffEmails(): Promise<string[]> {
 // ────────────────────────────────────────────────────────────
 
 /**
- * Email #1 — Customer confirmation after a new booking request.
+ * Email #1: Customer confirmation after a new booking request.
  * Skipped silently if the customer has no email on file.
  */
 export async function notifyCustomerBookingReceived(booking: BookingWithRelations): Promise<void> {
@@ -89,8 +99,8 @@ export async function notifyCustomerBookingReceived(booking: BookingWithRelation
 }
 
 /**
- * Email #2 — Staff alert for every new booking request.
- * Never skipped — staff need to know regardless of customer email.
+ * Email #2: Staff alert for every new booking request.
+ * Never skipped, staff need to know regardless of customer email.
  */
 export async function notifyStaffNewBooking(booking: BookingWithRelations): Promise<void> {
   try {
@@ -111,7 +121,7 @@ export async function notifyStaffNewBooking(booking: BookingWithRelations): Prom
 }
 
 /**
- * Emails #3–#7 — Customer notification on status change.
+ * Emails #3–#7: Customer notification on status change.
  * Skipped silently if the customer has no email.
  */
 export async function notifyCustomerStatusChange(
@@ -155,7 +165,7 @@ export async function notifyCustomerStatusChange(
 }
 
 /**
- * Email #8 — Staff invite.
+ * Email #8: Staff invite.
  * inviteUrl is the Clerk-generated invitation link.
  */
 export async function notifyStaffInvited(

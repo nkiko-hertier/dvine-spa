@@ -4,7 +4,6 @@ import { prisma } from '../../lib/prisma.js';
 import { ok } from '../../lib/response.js';
 import { parseDate } from '../../lib/queryParams.js';
 import { serializeDailySummary } from '../../lib/serializers.js';
-import { topTreatmentSince } from '../../lib/treatmentUsage.js';
 
 export const adminDashboardRouter = Router();
 
@@ -49,16 +48,30 @@ adminDashboardRouter.get('/stats', async (_req, res, next) => {
       thisWeekConfirmed,
       thisMonthCompleted,
       newCustomers30d,
-      topTreatment,
+      topTreatmentRows,
     ] = await Promise.all([
       prisma.bookingRequest.count({ where: { status: BookingStatus.new_request } }),
       prisma.bookingRequest.count({ where: { preferredDate: { gte: startOfToday, lt: endOfToday } } }),
       prisma.bookingRequest.count({ where: { status: BookingStatus.confirmed, confirmedAt: { gte: startOfWeek } } }),
       prisma.bookingRequest.count({ where: { status: BookingStatus.completed, completedAt: { gte: startOfMonth } } }),
       prisma.customer.count({ where: { customerSince: { gte: thirtyDaysAgo } } }),
-      // Counts every service on a booking, not just the primary one.
-      topTreatmentSince(thirtyDaysAgo),
+      prisma.bookingRequest.groupBy({
+        by: ['treatmentId'],
+        where: { createdAt: { gte: thirtyDaysAgo } },
+        _count: { treatmentId: true },
+        orderBy: { _count: { treatmentId: 'desc' } },
+        take: 1,
+      }),
     ]);
+
+    let topTreatment = null;
+    const topRow = topTreatmentRows[0];
+    if (topRow) {
+      const treatment = await prisma.treatment.findUnique({ where: { id: topRow.treatmentId } });
+      if (treatment) {
+        topTreatment = { id: treatment.id, name: treatment.name, bookings: topRow._count.treatmentId };
+      }
+    }
 
     ok(res, {
       pending_requests: pendingRequests,

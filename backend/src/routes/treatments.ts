@@ -5,12 +5,14 @@ import { okList, ok, parsePagination, buildPaginationMeta } from '../lib/respons
 import { AppError } from '../lib/errors.js';
 import { asString, parseSort } from '../lib/queryParams.js';
 import { serializePublicTreatment } from '../lib/serializers.js';
+import { withDbRetry } from '../lib/dbRetry.js';
+import { catalogVersionForStamp, CATALOG_VERSION_HEADER } from '../lib/catalogVersion.js';
 
 export const treatmentsRouter = Router();
 
 const SORT_FIELDS = ['displayOrder', 'price', 'durationMinutes', 'name'] as const;
 
-/** GET /treatments — public, active only — API_DOCUMENTATION.md §6 */
+/** GET /treatments, public, active only, API_DOCUMENTATION.md §6 */
 treatmentsRouter.get('/', async (req, res, next) => {
   try {
     const { page, limit, offset } = parsePagination(req.query);
@@ -40,10 +42,17 @@ treatmentsRouter.get('/', async (req, res, next) => {
 
     const orderBy = parseSort(req.query.sort, SORT_FIELDS, 'displayOrder');
 
-    const [treatments, total] = await Promise.all([
-      prisma.treatment.findMany({ where, orderBy, skip: offset, take: limit, include: { category: true } }),
-      prisma.treatment.count({ where }),
-    ]);
+    // The version travels with the list so a client can later tell whether
+    // this copy (possibly served from the edge cache) is still current. Read
+    // first, so it can only be older than the rows, never newer.
+    const version = await catalogVersionForStamp();
+    const [treatments, total] = await withDbRetry(() =>
+      Promise.all([
+        prisma.treatment.findMany({ where, orderBy, skip: offset, take: limit, include: { category: true } }),
+        prisma.treatment.count({ where }),
+      ]),
+    );
+    if (version) res.setHeader(CATALOG_VERSION_HEADER, version);
 
     okList(
       res,
@@ -55,7 +64,7 @@ treatmentsRouter.get('/', async (req, res, next) => {
   }
 });
 
-/** GET /treatments/:id — public, 404 if missing or inactive */
+/** GET /treatments/:id, public, 404 if missing or inactive */
 treatmentsRouter.get('/:id', async (req, res, next) => {
   try {
     const treatment = await prisma.treatment.findFirst({

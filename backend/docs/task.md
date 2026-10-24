@@ -1,81 +1,81 @@
-# D'Vine Spa API — Implementation Tasks
+# D'Vine Spa API, Implementation Tasks
 
-Tracks build-out of the backend described in `API_DOCUMENTATION.md`, `002_clerk_integration_and_fixes.sql`, and `003_realtime_notifications.sql`. Work top to bottom — later phases depend on earlier ones. Check items off as they land; leave a note + PR link next to anything non-trivial.
+Tracks build-out of the backend described in `API_DOCUMENTATION.md`, `002_clerk_integration_and_fixes.sql`, and `003_realtime_notifications.sql`. Work top to bottom, later phases depend on earlier ones. Check items off as they land; leave a note + PR link next to anything non-trivial.
 
 **Stack:** Node.js (TypeScript) + Express, Prisma or Drizzle, PostgreSQL, Clerk, Socket.IO. See `API_DOCUMENTATION.md` Appendix C for rationale.
 
 ---
 
-## Phase 0 — Project Setup ✅
+## Phase 0, Project Setup ✅
 
-- [x] Init Node/TS project (`tsconfig.json`, `eslint`, `prettier`) — `dvine-spa-api/`, strict TS, flat ESLint config, Prettier
-- [x] Choose ORM (Prisma or Drizzle) and generate models from the current schema — **Prisma**, hand-authored `schema.prisma` verified against a live DB (see Phase 1)
-- [x] `.env.example` with all vars from `API_DOCUMENTATION.md` Appendix A (`DATABASE_URL`, `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY`, `CLERK_WEBHOOK_SECRET`, `REDIS_URL`) — plus `PORT`/`DASHBOARD_URL` for local dev
-- [x] Local Postgres via Docker Compose — `docker-compose.yml`, healthcheck included
+- [x] Init Node/TS project (`tsconfig.json`, `eslint`, `prettier`), `dvine-spa-api/`, strict TS, flat ESLint config, Prettier
+- [x] Choose ORM (Prisma or Drizzle) and generate models from the current schema, **Prisma**, hand-authored `schema.prisma` verified against a live DB (see Phase 1)
+- [x] `.env.example` with all vars from `API_DOCUMENTATION.md` Appendix A (`DATABASE_URL`, `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY`, `CLERK_WEBHOOK_SECRET`, `REDIS_URL`), plus `PORT`/`DASHBOARD_URL` for local dev
+- [x] Local Postgres via Docker Compose, `docker-compose.yml`, healthcheck included
 - [x] Base Express app: JSON body parsing, CORS (dashboard origin only), request logging (pino via `pino-http`)
-- [x] Global error handler → maps to the `{ success:false, error:{code,message} }` envelope (§4.1–4.2) — `AppError` class + Zod error mapping in `src/middleware/errorHandler.ts`
-- [x] Health check route `GET /health` — verified locally, returns `{ success:true, data:{ status:"ok", uptime_seconds } }`
-- [ ] Repo hosting decision (Railway / Render / Fly.io) — still open, see Open Decisions
-- [x] CI pipeline skeleton (lint, typecheck, test, build on PR) — `.github/workflows/ci.yml`
+- [x] Global error handler → maps to the `{ success:false, error:{code,message} }` envelope (§4.1–4.2), `AppError` class + Zod error mapping in `src/middleware/errorHandler.ts`
+- [x] Health check route `GET /health`, verified locally, returns `{ success:true, data:{ status:"ok", uptime_seconds } }`
+- [ ] Repo hosting decision (Railway / Render / Fly.io), still open, see Open Decisions
+- [x] CI pipeline skeleton (lint, typecheck, test, build on PR), `.github/workflows/ci.yml`
 
 **Done when:** app boots locally, connects to DB, `GET /health` returns 200 in CI.
-**Status:** app boots and `/health` verified locally (lint, typecheck, test, build, and a live `curl` all passed). DB connectivity check on `/health` is deferred to Phase 1 once the ORM is chosen and wired in — CI will go green on push since it doesn't require a DB yet. Scaffold delivered as `dvine-spa-api.zip`.
+**Status:** app boots and `/health` verified locally (lint, typecheck, test, build, and a live `curl` all passed). DB connectivity check on `/health` is deferred to Phase 1 once the ORM is chosen and wired in, CI will go green on push since it doesn't require a DB yet. Scaffold delivered as `dvine-spa-api.zip`.
 
 ---
 
-## Phase 1 — Database ✅ (verified live; one manual step needed on your end)
+## Phase 1, Database ✅ (verified live; one manual step needed on your end)
 
-- [x] Apply base schema `deepseek_sql_20260810_c2dcb2.sql` — applied to a real Postgres instance and verified via `\d+`/`\dv`
+- [x] Apply base schema `deepseek_sql_20260810_c2dcb2.sql`, applied to a real Postgres instance and verified via `\d+`/`\dv`
 - [x] Apply `002_clerk_integration_and_fixes.sql`
 - [x] Apply `003_realtime_notifications.sql`
-- [x] Set up a migration runner going forward — **Prisma Migrate, baselined** against the hand-written SQL above (not `prisma migrate dev` from scratch — see `prisma/migrations/README.md` for why: triggers, `pg_notify`, and views aren't Prisma-representable). New schema changes are still authored as numbered `.sql` files in `sql/`, then `schema.prisma` is refreshed via `prisma db pull`.
-- [x] Seed script for local dev — `prisma/seed.ts`, idempotent (upserts), deliberately fires concurrent booking-request inserts to keep exercising the race-condition fix
-- [x] Verify triggers fire as expected — all confirmed live: `set_request_reference`, `log_booking_status_change`, `set_booking_timestamps`, `notify_booking_change`, `notify_new_booking_request`, `notify_booking_status_alert` (confirmed via `LISTEN`/`UPDATE` in `psql`)
+- [x] Set up a migration runner going forward, **Prisma Migrate, baselined** against the hand-written SQL above (not `prisma migrate dev` from scratch, see `prisma/migrations/README.md` for why: triggers, `pg_notify`, and views aren't Prisma-representable). New schema changes are still authored as numbered `.sql` files in `sql/`, then `schema.prisma` is refreshed via `prisma db pull`.
+- [x] Seed script for local dev, `prisma/seed.ts`, idempotent (upserts), deliberately fires concurrent booking-request inserts to keep exercising the race-condition fix
+- [x] Verify triggers fire as expected, all confirmed live: `set_request_reference`, `log_booking_status_change`, `set_booking_timestamps`, `notify_booking_change`, `notify_new_booking_request`, `notify_booking_status_alert` (confirmed via `LISTEN`/`UPDATE` in `psql`)
 
 **Done when:** a fresh DB stands up from migrations alone (no manual steps), seed data loads, and `LISTEN booking_updates; UPDATE booking_requests SET status = 'contacted' WHERE ...;` shows a notification in `psql`.
-**Status:** Verified for real against a locally-installed Postgres 16 instance (Docker wasn't available in the build sandbox, so `apt install postgresql` was used instead — `docker-compose.yml` is still the intended path for normal dev machines and is unaffected). Two real bugs were found and fixed in the process, not just theorized:
+**Status:** Verified for real against a locally-installed Postgres 16 instance (Docker wasn't available in the build sandbox, so `apt install postgresql` was used instead, `docker-compose.yml` is still the intended path for normal dev machines and is unaffected). Two real bugs were found and fixed in the process, not just theorized:
   1. **The original schema's bug** (flagged in the doc review, now reproduced live): `generate_request_reference()` casts a string containing a hyphen to `INT` and throws on the second booking request in the same year. Confirmed by running the base schema's own sample data, which fails at exactly that point.
-  2. **A bug in the fix itself**, caught while re-testing: the replacement function used a PL/pgSQL variable named `year_part`, which collided with the `year_part` column inside `ON CONFLICT (year_part)`, throwing "ambiguous column reference." Renamed to `v_year_part`/`v_seq_num` in `sql/002_clerk_integration_and_fixes.sql`, re-tested — a 6-row concurrent-style insert that previously failed now produces 6 correctly sequential references in one shot.
-  - `prisma/schema.prisma` was hand-authored against the live, `psql`-verified schema (all 8 tables + 3 views), **not** generated by `prisma db pull`/`generate` — those need to download engine binaries from `binaries.prisma.sh`, which the build sandbox's network allowlist blocks (403 on every attempt). This is an environment limitation, not a schema problem. **Action needed from you:** run `npm install && npx prisma generate` once in a normal environment (local machine or CI, both have unrestricted internet) and let me know if it throws — if the hand-written schema has a typo, that's how it'll surface.
-  - CI (`.github/workflows/ci.yml`) now spins up a real Postgres service, applies the three SQL files, baselines Prisma, then runs lint/typecheck/test/build — this exercises the full DB setup on every PR going forward, unlike the sandbox this was built in.
+  2. **A bug in the fix itself**, caught while re-testing: the replacement function used a PL/pgSQL variable named `year_part`, which collided with the `year_part` column inside `ON CONFLICT (year_part)`, throwing "ambiguous column reference." Renamed to `v_year_part`/`v_seq_num` in `sql/002_clerk_integration_and_fixes.sql`, re-tested, a 6-row concurrent-style insert that previously failed now produces 6 correctly sequential references in one shot.
+  - `prisma/schema.prisma` was hand-authored against the live, `psql`-verified schema (all 8 tables + 3 views), **not** generated by `prisma db pull`/`generate`, those need to download engine binaries from `binaries.prisma.sh`, which the build sandbox's network allowlist blocks (403 on every attempt). This is an environment limitation, not a schema problem. **Action needed from you:** run `npm install && npx prisma generate` once in a normal environment (local machine or CI, both have unrestricted internet) and let me know if it throws, if the hand-written schema has a typo, that's how it'll surface.
+  - CI (`.github/workflows/ci.yml`) now spins up a real Postgres service, applies the three SQL files, baselines Prisma, then runs lint/typecheck/test/build, this exercises the full DB setup on every PR going forward, unlike the sandbox this was built in.
 
 ---
 
-## Phase 2 — Auth (Clerk) ✅ (code complete; live Clerk test still needed)
+## Phase 2, Auth (Clerk) ✅ (code complete; live Clerk test still needed)
 
 Ref: `API_DOCUMENTATION.md` §2, §3
 
-- [x] `requireAuth` middleware (§2.3) on all `/admin/*` routes — `src/middleware/auth.ts`, resolves Clerk `sub` → local `staff` row, 403s on missing/inactive staff
+- [x] `requireAuth` middleware (§2.3) on all `/admin/*` routes, `src/middleware/auth.ts`, resolves Clerk `sub` → local `staff` row, 403s on missing/inactive staff
 - [x] `requireRole('admin')` middleware on `/admin/staff/*`
-- [x] `webhook_events` idempotency check wired in (insert-or-skip via unique constraint, P2002-specific — not a catch-all)
-- [x] `POST /webhooks/clerk` — Svix verification + routing to handlers for `user.created`, `user.updated`, `user.deleted`, `session.created` (§3.3–3.4) — `src/routes/webhooks.ts`
-- [ ] Clerk project set up; JWT template `spa-api` with `role` claim from `public_metadata.role` — **your action**, needs a real Clerk account
-- [ ] Configure the four events in Clerk Dashboard → Webhooks, pointed at the deployed URL — **your action**
-- [ ] Manual test: invite a staff user → accept → confirm `staff` row appears with correct `role` — **your action**, needs live Clerk
+- [x] `webhook_events` idempotency check wired in (insert-or-skip via unique constraint, P2002-specific, not a catch-all)
+- [x] `POST /webhooks/clerk`, Svix verification + routing to handlers for `user.created`, `user.updated`, `user.deleted`, `session.created` (§3.3–3.4), `src/routes/webhooks.ts`
+- [ ] Clerk project set up; JWT template `spa-api` with `role` claim from `public_metadata.role`, **your action**, needs a real Clerk account
+- [ ] Configure the four events in Clerk Dashboard → Webhooks, pointed at the deployed URL, **your action**
+- [ ] Manual test: invite a staff user → accept → confirm `staff` row appears with correct `role`, **your action**, needs live Clerk
 
 **Done when:** an invited user can sign in via Clerk, hit an `/admin` route, and be correctly identified/role-checked server-side; a deleted Clerk user is soft-deactivated via webhook.
-**Status:** Code written and lint-clean; startup now warns loudly if `CLERK_SECRET_KEY`/`CLERK_WEBHOOK_SECRET` are unset rather than failing silently on first request. Could not be tested against a real Clerk instance (no account configured) — the unchecked items above need you to actually do them, this can't be verified from code alone.
+**Status:** Code written and lint-clean; startup now warns loudly if `CLERK_SECRET_KEY`/`CLERK_WEBHOOK_SECRET` are unset rather than failing silently on first request. Could not be tested against a real Clerk instance (no account configured), the unchecked items above need you to actually do them, this can't be verified from code alone.
 
 ---
 
-## Phase 3 — Public Endpoints (no auth) ✅
+## Phase 3, Public Endpoints (no auth) ✅
 
 Ref: `API_DOCUMENTATION.md` §5–6, §8.1–8.2
 
 - [x] `GET /categories`, `GET /categories/:id`, `GET /categories/:id/treatments`
 - [x] `GET /treatments` (filters: `category_id`, `search`, `min/max_price`, `min/max_duration`, `sort`, pagination)
 - [x] `GET /treatments/:id`
-- [x] `POST /booking-requests` — customer upsert-by-phone, treatment validation, `Idempotency-Key` support (in-memory store — see `src/lib/idempotency.ts` for the documented single-instance limitation)
-- [x] `GET /booking-requests/lookup` — reference + phone match, generic 404 on mismatch
+- [x] `POST /booking-requests`, customer upsert-by-phone, treatment validation, `Idempotency-Key` support (in-memory store, see `src/lib/idempotency.ts` for the documented single-instance limitation)
+- [x] `GET /booking-requests/lookup`, reference + phone match, generic 404 on mismatch
 - [x] Per-IP rate limiting (§4.5): 60 req/min general (`publicLimiter`), 5 req/min on booking creation (`bookingCreateLimiter`, scoped to just `POST /booking-requests` so it doesn't also throttle `GET /lookup`)
-- [x] Input validation layer — Zod, `src/schemas/index.ts`
+- [x] Input validation layer, Zod, `src/schemas/index.ts`
 
 **Done when:** the public booking widget can list treatments and submit a request end-to-end against a real DB, with rate limits and idempotency verified by test.
-**Status:** Code complete, lint-clean. Not run against a live DB in this environment (same Prisma-engine sandbox restriction as Phase 1) — should be exercised for real against the seeded local Postgres before considering this fully done.
+**Status:** Code complete, lint-clean. Not run against a live DB in this environment (same Prisma-engine sandbox restriction as Phase 1), should be exercised for real against the seeded local Postgres before considering this fully done.
 
 ---
 
-## Phase 4 — Admin Endpoints: Core Resources ✅
+## Phase 4, Admin Endpoints: Core Resources ✅
 
 Ref: `API_DOCUMENTATION.md` §5, §6, §7
 
@@ -86,76 +86,76 @@ Ref: `API_DOCUMENTATION.md` §5, §6, §7
 - [x] `PATCH /admin/customers/:id`
 
 **Done when:** dashboard CRUD screens for categories/treatments/customers work against these endpoints with correct filters and pagination `meta`.
-**Status:** Code complete. See the "two categories of bugs" note at the bottom of this section — both affected these endpoints and were fixed.
+**Status:** Code complete. See the "two categories of bugs" note at the bottom of this section, both affected these endpoints and were fixed.
 
 ---
 
-## Phase 5 — Admin Endpoints: Booking Requests & Audit ✅
+## Phase 5, Admin Endpoints: Booking Requests & Audit ✅
 
 Ref: `API_DOCUMENTATION.md` §8.3–8.5, §10, §11
 
 - [x] `GET /admin/booking-requests` (all filters in §8.3: status[], treatment/category/customer id, channel, date ranges, search, sort, pagination)
 - [x] `GET /admin/booking-requests/:id` (+ embedded `audit_trail`)
-- [x] `PATCH /admin/booking-requests/:id` — **status state machine enforced in code** (`src/lib/bookingStatusMachine.ts`, matches the §8.5 diagram exactly, e.g. `completed → new_request` correctly rejected with `409`); `cancellation_reason` required when cancelling (enforced by the Zod schema's `.refine`); DB triggers handle timestamps/audit automatically, code never sets them manually
+- [x] `PATCH /admin/booking-requests/:id`, **status state machine enforced in code** (`src/lib/bookingStatusMachine.ts`, matches the §8.5 diagram exactly, e.g. `completed → new_request` correctly rejected with `409`); `cancellation_reason` required when cancelling (enforced by the Zod schema's `.refine`); DB triggers handle timestamps/audit automatically, code never sets them manually
 - [x] `GET /admin/audit-logs` (filters: booking_request_id, user_id, action, date range)
 - [x] `GET /admin/dashboard/summary` (backed by `daily_requests_summary`)
 - [x] `GET /admin/dashboard/stats`
 
 **Done when:** the full booking pipeline (new → contacted → confirmed → completed, plus cancel/no-show branches) works from the dashboard, invalid transitions return `409`, and every status change produces an `audit_logs` row automatically.
-**Status:** Code complete. This is where the BigInt bug (below) was caught — `daily_requests_summary`'s `COUNT()` columns and `customer_summary`'s counts come back from Prisma as `BigInt`, which `res.json()` cannot serialize at all (throws, not just wrong output). Fixed via `src/lib/serializers.ts`.
+**Status:** Code complete. This is where the BigInt bug (below) was caught, `daily_requests_summary`'s `COUNT()` columns and `customer_summary`'s counts come back from Prisma as `BigInt`, which `res.json()` cannot serialize at all (throws, not just wrong output). Fixed via `src/lib/serializers.ts`.
 
 ---
 
-## Phase 6 — Staff Management ✅
+## Phase 6, Staff Management ✅
 
 Ref: `API_DOCUMENTATION.md` §9
 
 - [x] `GET /admin/staff` (admin only)
-- [x] `POST /admin/staff/invite` (admin only) — calls `clerkClient.invitations.createInvitation`; the invite's `full_name` is threaded through as `public_metadata.pending_full_name` so the `user.created` webhook has a name to fall back on before the user has set one in Clerk
-- [x] `PATCH /admin/staff/:id` (admin only) — role change also updates Clerk `public_metadata.role` (best-effort: logs and continues on Clerk API failure rather than failing the whole request, since the DB is the record of truth and the next webhook/retry reconciles it)
-- [x] `DELETE /admin/staff/:id` (admin only) — soft delete + revoke active Clerk sessions
-- [x] Confirm `password_hash`/`clerk_user_id` never leak in any response payload — `serializeStaff()` is an explicit allow-list, not a spread of the Prisma row, so this can't regress silently by a future field being added to the schema
+- [x] `POST /admin/staff/invite` (admin only), calls `clerkClient.invitations.createInvitation`; the invite's `full_name` is threaded through as `public_metadata.pending_full_name` so the `user.created` webhook has a name to fall back on before the user has set one in Clerk
+- [x] `PATCH /admin/staff/:id` (admin only), role change also updates Clerk `public_metadata.role` (best-effort: logs and continues on Clerk API failure rather than failing the whole request, since the DB is the record of truth and the next webhook/retry reconciles it)
+- [x] `DELETE /admin/staff/:id` (admin only), soft delete + revoke active Clerk sessions
+- [x] Confirm `password_hash`/`clerk_user_id` never leak in any response payload, `serializeStaff()` is an explicit allow-list, not a spread of the Prisma row, so this can't regress silently by a future field being added to the schema
 
 **Done when:** an admin can invite, promote/demote, and deactivate staff entirely from the dashboard, with Clerk and the local `staff` table staying in sync in both directions.
-**Status:** Code complete, lint-clean. `clerkClient.sessions.getSessionList`/`revokeSession` calls are written to the Clerk Backend SDK's documented shape but unverified against a live Clerk instance — flag if the exact method signature has changed since training.
+**Status:** Code complete, lint-clean. `clerkClient.sessions.getSessionList`/`revokeSession` calls are written to the Clerk Backend SDK's documented shape but unverified against a live Clerk instance, flag if the exact method signature has changed since training.
 
 ---
 
 ### Two categories of real bugs found and fixed across Phases 2–6
 
-Both were caught by systematically re-checking implementation against `API_DOCUMENTATION.md`'s actual JSON examples, not by running the code (couldn't — see Phase 1's Prisma-engine sandbox limitation, same constraint applies here):
+Both were caught by systematically re-checking implementation against `API_DOCUMENTATION.md`'s actual JSON examples, not by running the code (couldn't, see Phase 1's Prisma-engine sandbox limitation, same constraint applies here):
 
-1. **Request-body field naming mismatch.** Zod schemas were initially written in `camelCase` (`full_name` → `fullName`), but `API_DOCUMENTATION.md`'s documented request bodies are `snake_case` throughout (`cover_image_url`, `treatment_id`, etc.) — a real contract break that would have silently rejected every correctly-formed request from a frontend built against the docs. Fixed by rewriting `src/schemas/index.ts` to snake_case and explicitly mapping validated input to Prisma's camelCase columns at each call site (see any admin route's `.create`/`.update` calls).
-2. **Response field naming + a hard BigInt crash.** The inverse problem on the way out: several admin list/detail endpoints (categories, treatments, customers, audit logs, dashboard summary) were returning raw Prisma objects (camelCase) instead of the documented snake_case shape. Worse, `customer_summary`/`daily_requests_summary`'s `COUNT()` columns come back from Prisma as `BigInt`, which `res.json()` cannot serialize — an actual runtime crash on first use, not just a cosmetic mismatch. Fixed with a shared `src/lib/serializers.ts` (explicit allow-list mapping + `BigInt→Number` conversion for every one of these endpoints, including nested cases like the `audit_trail` embedded in booking-request detail, and a separate `serializePublicTreatment` vs. admin `serializeTreatment` so public endpoints don't leak `is_active`/timestamps).
+1. **Request-body field naming mismatch.** Zod schemas were initially written in `camelCase` (`full_name` → `fullName`), but `API_DOCUMENTATION.md`'s documented request bodies are `snake_case` throughout (`cover_image_url`, `treatment_id`, etc.), a real contract break that would have silently rejected every correctly-formed request from a frontend built against the docs. Fixed by rewriting `src/schemas/index.ts` to snake_case and explicitly mapping validated input to Prisma's camelCase columns at each call site (see any admin route's `.create`/`.update` calls).
+2. **Response field naming + a hard BigInt crash.** The inverse problem on the way out: several admin list/detail endpoints (categories, treatments, customers, audit logs, dashboard summary) were returning raw Prisma objects (camelCase) instead of the documented snake_case shape. Worse, `customer_summary`/`daily_requests_summary`'s `COUNT()` columns come back from Prisma as `BigInt`, which `res.json()` cannot serialize, an actual runtime crash on first use, not just a cosmetic mismatch. Fixed with a shared `src/lib/serializers.ts` (explicit allow-list mapping + `BigInt→Number` conversion for every one of these endpoints, including nested cases like the `audit_trail` embedded in booking-request detail, and a separate `serializePublicTreatment` vs. admin `serializeTreatment` so public endpoints don't leak `is_active`/timestamps).
 
-**Neither bug would have been caught by `npm run typecheck`/`build`** even with the Prisma client generated — both are shape/contract mismatches TypeScript has no way to know about (the code was internally type-consistent, just wrong against the documented contract). Worth keeping in mind for Phase 9: a contract test that runs real requests against a running server and asserts on the actual JSON shape (not just status codes) would have caught both automatically, and should be added.
+**Neither bug would have been caught by `npm run typecheck`/`build`** even with the Prisma client generated, both are shape/contract mismatches TypeScript has no way to know about (the code was internally type-consistent, just wrong against the documented contract). Worth keeping in mind for Phase 9: a contract test that runs real requests against a running server and asserts on the actual JSON shape (not just status codes) would have caught both automatically, and should be added.
 
 ---
 
-## Phase 7 — Realtime (WebSocket) ✅ (code complete; live 2-client test still needed)
+## Phase 7, Realtime (WebSocket) ✅ (code complete; live 2-client test still needed)
 
 Ref: `API_DOCUMENTATION.md` §12
 
-- [x] Socket.IO server mounted on the same HTTP server as Express — `src/realtime/socket.ts`, attached to the same `server` returned by `app.listen()` in `src/index.ts`, never a second server
-- [x] Handshake auth middleware (Clerk token verification, §12.2) — uses `verifyToken()` directly (not the HTTP-request-shaped `clerkMiddleware()`) plus the same `resolveActiveStaff()` helper `requireAuth` uses, refactored out of `middleware/auth.ts` into `lib/resolveStaff.ts` so HTTP and socket auth can't drift apart
-- [x] `pg` `LISTEN` client for `booking_updates` + `dashboard_notifications`, re-broadcast via `io.to('dashboard').emit(...)` — `src/realtime/pgListener.ts`
-- [x] Listener reconnect-on-drop logic — handles both `error` and unexpected `end` events, re-issues `LISTEN` on every reconnect (required — `pg` doesn't remember subscriptions across a dropped connection)
-- [ ] Dashboard client: connect with Clerk token, `booking:updated` → invalidate relevant queries, `notification:new` → toast + badge — **frontend work**, not in this repo
-- [ ] Resync-on-reconnect: refetch current view on every `connect` event — **frontend work**
-- [ ] (Deferred until multi-instance) `@socket.io/redis-adapter` — correctly not built yet, per the doc's own guidance
+- [x] Socket.IO server mounted on the same HTTP server as Express, `src/realtime/socket.ts`, attached to the same `server` returned by `app.listen()` in `src/index.ts`, never a second server
+- [x] Handshake auth middleware (Clerk token verification, §12.2), uses `verifyToken()` directly (not the HTTP-request-shaped `clerkMiddleware()`) plus the same `resolveActiveStaff()` helper `requireAuth` uses, refactored out of `middleware/auth.ts` into `lib/resolveStaff.ts` so HTTP and socket auth can't drift apart
+- [x] `pg` `LISTEN` client for `booking_updates` + `dashboard_notifications`, re-broadcast via `io.to('dashboard').emit(...)`, `src/realtime/pgListener.ts`
+- [x] Listener reconnect-on-drop logic, handles both `error` and unexpected `end` events, re-issues `LISTEN` on every reconnect (required, `pg` doesn't remember subscriptions across a dropped connection)
+- [ ] Dashboard client: connect with Clerk token, `booking:updated` → invalidate relevant queries, `notification:new` → toast + badge, **frontend work**, not in this repo
+- [ ] Resync-on-reconnect: refetch current view on every `connect` event, **frontend work**
+- [ ] (Deferred until multi-instance) `@socket.io/redis-adapter`, correctly not built yet, per the doc's own guidance
 
-**Done when:** two dashboard sessions open at once — a status change or new request in one shows up live in the other within ~1s, and killing/restoring the network connection resyncs correctly.
-**Status:** Backend code complete and lint-clean. Genuinely **not yet tested against a live connection** — needs a real Clerk token and a running Postgres with the Phase 1 triggers, neither of which exist in the sandbox this was built in. The two unchecked items above are frontend responsibilities once that repo exists, not gaps in this one.
+**Done when:** two dashboard sessions open at once, a status change or new request in one shows up live in the other within ~1s, and killing/restoring the network connection resyncs correctly.
+**Status:** Backend code complete and lint-clean. Genuinely **not yet tested against a live connection**, needs a real Clerk token and a running Postgres with the Phase 1 triggers, neither of which exist in the sandbox this was built in. The two unchecked items above are frontend responsibilities once that repo exists, not gaps in this one.
 
 ---
 
-## Phase 8 — API Docs (Swagger / OpenAPI) ✅
+## Phase 8, API Docs (Swagger / OpenAPI) ✅
 
 Ref: `API_DOCUMENTATION.md` top-of-file TODO note
 
-- [x] Generate OpenAPI 3.1 spec from the Zod validators (`zod-to-openapi`) rather than hand-writing YAML — `src/openapi/`, request bodies reuse the exact schemas from `src/schemas/index.ts` (not a re-typed copy), so the two genuinely cannot drift
-- [x] Serve Swagger UI at `/docs` (`swagger-ui-express`) — `src/routes/docs.ts`, plus raw spec at `/openapi.json`. **Not** gated behind auth yet — flagged inline in `app.ts` as a deployment decision to make before going to production if the API itself is public-facing
-- [x] Cross-check generated spec against `API_DOCUMENTATION.md` — spot-checked `POST /booking-requests`' generated request schema by actually running the generator (see status note); confirmed the snake_case field names match
+- [x] Generate OpenAPI 3.1 spec from the Zod validators (`zod-to-openapi`) rather than hand-writing YAML, `src/openapi/`, request bodies reuse the exact schemas from `src/schemas/index.ts` (not a re-typed copy), so the two genuinely cannot drift
+- [x] Serve Swagger UI at `/docs` (`swagger-ui-express`), `src/routes/docs.ts`, plus raw spec at `/openapi.json`. **Not** gated behind auth yet, flagged inline in `app.ts` as a deployment decision to make before going to production if the API itself is public-facing
+- [x] Cross-check generated spec against `API_DOCUMENTATION.md`, spot-checked `POST /booking-requests`' generated request schema by actually running the generator (see status note); confirmed the snake_case field names match
 - [x] Link `/docs` from the README
 
 **Done when:** `/docs` renders every endpoint in this document with accurate request/response schemas, generated automatically from the same validators the routes use.
@@ -163,21 +163,21 @@ Ref: `API_DOCUMENTATION.md` top-of-file TODO note
 
 ---
 
-## Phase 9 — Testing & Hardening
+## Phase 9, Testing & Hardening
 
 - [ ] Unit tests: status transition validator, request-reference format, idempotency key handling
 - [ ] Integration tests (real Postgres, e.g. via Testcontainers): full booking lifecycle, Clerk webhook handlers (mocked Svix payloads), realtime notification firing on status change
-- [ ] Load-test `POST /booking-requests` for the request-reference race condition fix (concurrent inserts, same year) — confirms `003`'s counter-table fix holds under load
+- [ ] Load-test `POST /booking-requests` for the request-reference race condition fix (concurrent inserts, same year), confirms `003`'s counter-table fix holds under load
 - [ ] Verify rate limiting and idempotency-key behavior under concurrent duplicate requests
 - [ ] Security pass: confirm public endpoints can't reach `/admin/*` data, confirm `staff` role checks on every mutating admin route, confirm webhook route rejects bad/missing Svix signatures
-- [ ] **New, from Phase 2-6 review:** response-shape contract test (real HTTP request → assert actual JSON keys, not just status code) — would have caught both the snake_case and BigInt-serialization bugs automatically; see task list bottom note in Phase 5/6 section above
-- [ ] **New, from this sandbox's limitations:** the full Phase 2-8 codebase has been lint-verified and, for the OpenAPI piece, execution-verified — but never `typecheck`/`build`/integration-tested with a real generated Prisma client or a live Clerk project. That first real `npm run typecheck` after `prisma generate` is likely to surface at least minor issues (even well-reviewed TypeScript regularly has small type mismatches invisible without the compiler) — budget time for it, don't assume Phase 9 starts from a clean slate
+- [ ] **New, from Phase 2-6 review:** response-shape contract test (real HTTP request → assert actual JSON keys, not just status code), would have caught both the snake_case and BigInt-serialization bugs automatically; see task list bottom note in Phase 5/6 section above
+- [ ] **New, from this sandbox's limitations:** the full Phase 2-8 codebase has been lint-verified and, for the OpenAPI piece, execution-verified, but never `typecheck`/`build`/integration-tested with a real generated Prisma client or a live Clerk project. That first real `npm run typecheck` after `prisma generate` is likely to surface at least minor issues (even well-reviewed TypeScript regularly has small type mismatches invisible without the compiler), budget time for it, don't assume Phase 9 starts from a clean slate
 
 **Done when:** CI runs the full suite green, and the race-condition and auth-bypass cases specifically have tests guarding them (these are the two things most likely to regress silently).
 
 ---
 
-## Phase 10 — Deployment & Launch
+## Phase 10, Deployment & Launch
 
 - [ ] Provision production Postgres (with `uuid-ossp`, `citext`, `pg_trgm` extensions enabled)
 - [ ] Run all three migrations against production
@@ -195,9 +195,9 @@ Ref: `API_DOCUMENTATION.md` top-of-file TODO note
 
 | Decision | Affects | Status |
 |---|---|---|
-| Self-signup + admin approval vs. invite-only staff onboarding | Phase 2, 6 | Currently spec'd as invite-only — confirm or revisit |
-| Role-scoped realtime rooms (e.g. only admins get cancellation alerts) vs. single shared `dashboard` room | Phase 7 | Currently spec'd as single room — confirm or revisit |
+| Self-signup + admin approval vs. invite-only staff onboarding | Phase 2, 6 | Currently spec'd as invite-only, confirm or revisit |
+| Role-scoped realtime rooms (e.g. only admins get cancellation alerts) vs. single shared `dashboard` room | Phase 7 | Currently spec'd as single room, confirm or revisit |
 | Host: Railway vs. Render vs. Fly.io | Phase 0, 10 | Open |
-| Confirm `npx prisma generate` succeeds against `schema.prisma` in a real (non-sandboxed) environment | Phase 1 | Needs you to run it once — see Phase 1 status note |
-| Run Phases 2–6 against a real Clerk project + seeded DB (not just lint-verified) | Phase 2–6 | Needs a live Clerk account + `npx prisma generate` first — see Phase 2 status note |
-| Add a response-shape contract test (real HTTP request → assert actual JSON keys) | Phase 9 | Would have caught both Phase 2–6 bugs automatically — recommend adding before Phase 9 is considered done |
+| Confirm `npx prisma generate` succeeds against `schema.prisma` in a real (non-sandboxed) environment | Phase 1 | Needs you to run it once, see Phase 1 status note |
+| Run Phases 2–6 against a real Clerk project + seeded DB (not just lint-verified) | Phase 2–6 | Needs a live Clerk account + `npx prisma generate` first, see Phase 2 status note |
+| Add a response-shape contract test (real HTTP request → assert actual JSON keys) | Phase 9 | Would have caught both Phase 2–6 bugs automatically, recommend adding before Phase 9 is considered done |

@@ -21,7 +21,7 @@ export function generateOpenApiDocument() {
       version: '1.1.0',
       description:
         "Booking-request management API for D'Vine Spa (no payment processing). " +
-        'Generated from the same Zod schemas the routes validate against — see docs/API_DOCUMENTATION.md for ' +
+        'Generated from the same Zod schemas the routes validate against. See docs/API_DOCUMENTATION.md for ' +
         'prose documentation (auth flows, webhook setup, realtime events) not representable in OpenAPI alone.',
     },
     servers: [{ url: '/', description: 'Relative to wherever this API is deployed' }],

@@ -6,7 +6,7 @@ import { prisma } from '../src/lib/prisma'
  * sample data from the base SQL schema, but inserted through Prisma so the
  * fixed `generate_request_reference()` trigger (see migration 002) is
  * exercised properly, including a multi-row-style burst of booking requests
- * — the exact scenario that originally broke.
+ *, the exact scenario that originally broke.
  */
 async function main() {
   const categories = await Promise.all(
@@ -44,7 +44,7 @@ async function main() {
   const relaxation = await prisma.treatment.findUniqueOrThrow({ where: { name: 'Relaxation Massage' } });
   const hotStone = await prisma.treatment.findUniqueOrThrow({ where: { name: 'Hot Stone Massage' } });
 
-  // Deliberately fire these concurrently — this is the scenario that broke
+  // Deliberately fire these concurrently, this is the scenario that broke
   // the original trigger (same-year, near-simultaneous inserts). If this
   // seed script completes without a unique-constraint or cast error, the
   // request_reference fix in migration 002 is doing its job.

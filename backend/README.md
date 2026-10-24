@@ -81,7 +81,6 @@ psql "$DATABASE_URL" -f sql/003_realtime_notifications.sql
 psql "$DATABASE_URL" -f sql/005_request_reference_prefix_ps.sql
 psql "$DATABASE_URL" -f sql/006_booking_request_treatments.sql
 psql "$DATABASE_URL" -f sql/007_request_reference_prefix_ps.sql
-psql "$DATABASE_URL" -f sql/009_booked_services.sql   # per-service status on a booking; run BEFORE deploying the matching backend
 npx prisma migrate resolve --applied 0_init   # tells Prisma this baseline is already applied
 npx prisma db seed                            # optional: load dev fixtures
 ```

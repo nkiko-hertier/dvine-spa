@@ -1,5 +1,5 @@
 /**
- * emailTemplates.ts — pure template functions, one per email in the plan.
+ * emailTemplates.ts: pure template functions, one per email in the plan.
  *
  * Design: cream (#F8F6F0) background, deep green (#1C3A27) header, matching
  * the live site's About/Booking/Contact pages exactly.
@@ -142,7 +142,7 @@ function baseLayout(headingText: string, bodyHtml: string): string {
       <p>d'Vine Spa · Kigali, Rwanda<br />
       Questions? Contact us via <a href="https://wa.me/250782867790">WhatsApp</a></p>
       <p style="margin-top:8px;color:#9CA89C;">You received this email because you made a booking with d'Vine Spa.<br />
-      This is a transactional notification — no marketing, no unsubscribe needed.</p>
+      This is a transactional notification. No marketing, no unsubscribe needed.</p>
     </div>
   </div>
 </body>
@@ -168,21 +168,21 @@ export interface BookingEmailContext {
 }
 
 function formatDate(d: Date | null | undefined): string {
-  if (!d) return '—';
+  if (!d) return '';
   return d.toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 }
 
 function formatTime(t: Date | null | undefined): string {
-  if (!t) return '—';
+  if (!t) return '';
   return t.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true });
 }
 
 // ────────────────────────────────────────────────────────────
-// Email #1 — Booking request received (customer)
+// Email #1: Booking request received (customer)
 // ────────────────────────────────────────────────────────────
 
 export function bookingReceivedCustomer(ctx: BookingEmailContext): { subject: string; html: string } {
-  const subject = `We've received your booking request — d'Vine Spa`;
+  const subject = `We've received your booking request - d'Vine Spa`;
 
   const body = `
     <h1>Your booking request has been received</h1>
@@ -198,7 +198,7 @@ export function bookingReceivedCustomer(ctx: BookingEmailContext): { subject: st
       <strong>Contact:</strong> ${ctx.customerPhone}
     </div>
 
-    <p>Please keep your reference number handy — you can use it to track your booking status.</p>
+    <p>Please keep your reference number handy. You can use it to track your booking status.</p>
     <p>Our team will contact you via phone or WhatsApp to confirm your slot. If you need to reach us in the meantime, please don't hesitate to get in touch.</p>
     <hr class="divider" />
     <p style="font-size:13px;color:#5A6B5A;">We look forward to welcoming you.</p>
@@ -208,7 +208,7 @@ export function bookingReceivedCustomer(ctx: BookingEmailContext): { subject: st
 }
 
 // ────────────────────────────────────────────────────────────
-// Email #2 — New booking alert (staff)
+// Email #2: New booking alert (staff)
 // ────────────────────────────────────────────────────────────
 
 export function newBookingStaffAlert(
@@ -216,7 +216,7 @@ export function newBookingStaffAlert(
   dashboardUrl: string,
   bookingId: string,
 ): { subject: string; html: string } {
-  const subject = `New booking request — ${ctx.customerName}`;
+  const subject = `New booking request: ${ctx.customerName}`;
   const bookingLink = `${dashboardUrl}/bookings/${bookingId}`;
 
   const body = `
@@ -242,11 +242,11 @@ export function newBookingStaffAlert(
 }
 
 // ────────────────────────────────────────────────────────────
-// Email #3 — Booking contacted (customer)
+// Email #3: Booking contacted (customer)
 // ────────────────────────────────────────────────────────────
 
 export function bookingContactedCustomer(ctx: BookingEmailContext): { subject: string; html: string } {
-  const subject = `We're reaching out about your booking — d'Vine Spa`;
+  const subject = `We're reaching out about your booking - d'Vine Spa`;
 
   const body = `
     <h1>We're reaching out</h1>
@@ -267,13 +267,13 @@ export function bookingContactedCustomer(ctx: BookingEmailContext): { subject: s
 }
 
 // ────────────────────────────────────────────────────────────
-// Email #4 — Booking confirmed (customer)
+// Email #4: Booking confirmed (customer)
 // ────────────────────────────────────────────────────────────
 
 export function bookingConfirmedCustomer(ctx: BookingEmailContext): { subject: string; html: string } {
   const dateLabel = ctx.confirmedDate ? formatDate(ctx.confirmedDate) : formatDate(ctx.preferredDate);
   const timeLabel = ctx.confirmedTime ? formatTime(ctx.confirmedTime) : formatTime(ctx.preferredTime);
-  const subject = `Your booking is confirmed — ${dateLabel} at ${timeLabel}`;
+  const subject = `Your booking is confirmed: ${dateLabel} at ${timeLabel}`;
 
   const body = `
     <h1>Your booking is confirmed ✓</h1>
@@ -297,7 +297,7 @@ export function bookingConfirmedCustomer(ctx: BookingEmailContext): { subject: s
 }
 
 // ────────────────────────────────────────────────────────────
-// Email #5 — Booking completed — thank you + review ask (customer)
+// Email #5: Booking completed, thank you + review ask (customer)
 // ────────────────────────────────────────────────────────────
 
 export function bookingCompletedCustomer(ctx: BookingEmailContext): { subject: string; html: string } {
@@ -328,11 +328,11 @@ export function bookingCompletedCustomer(ctx: BookingEmailContext): { subject: s
 }
 
 // ────────────────────────────────────────────────────────────
-// Email #6 — Booking cancelled (customer)
+// Email #6: Booking cancelled (customer)
 // ────────────────────────────────────────────────────────────
 
 export function bookingCancelledCustomer(ctx: BookingEmailContext): { subject: string; html: string } {
-  const subject = `Your booking has been cancelled — d'Vine Spa`;
+  const subject = `Your booking has been cancelled - d'Vine Spa`;
 
   const reasonBlock = ctx.cancellationReason
     ? `<p><strong>Reason:</strong> ${ctx.cancellationReason}</p>`
@@ -358,11 +358,11 @@ export function bookingCancelledCustomer(ctx: BookingEmailContext): { subject: s
 }
 
 // ────────────────────────────────────────────────────────────
-// Email #7 — Booking no-show (customer)
+// Email #7: Booking no-show (customer)
 // ────────────────────────────────────────────────────────────
 
 export function bookingNoShowCustomer(ctx: BookingEmailContext): { subject: string; html: string } {
-  const subject = `About your recent booking — d'Vine Spa`;
+  const subject = `About your recent booking - d'Vine Spa`;
 
   const body = `
     <h1>We missed you</h1>
@@ -384,7 +384,7 @@ export function bookingNoShowCustomer(ctx: BookingEmailContext): { subject: stri
 }
 
 // ────────────────────────────────────────────────────────────
-// Email #8 — Staff invited (staff member)
+// Email #8: Staff invited (staff member)
 // ────────────────────────────────────────────────────────────
 
 export function staffInvited(

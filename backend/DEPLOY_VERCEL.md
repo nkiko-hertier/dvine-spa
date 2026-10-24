@@ -10,7 +10,7 @@ working unchanged.
 1. **New Project** → import this repo.
 2. **Root Directory**: `backend`.
 3. **Framework Preset**: Other (the `vercel.json` sets `framework: null`).
-4. Build / install commands come from `vercel.json` — leave the UI fields blank:
+4. Build / install commands come from `vercel.json`, leave the UI fields blank:
    - install: `pnpm install --frozen-lockfile` (pnpm version comes from `packageManager` in package.json; dependency build scripts are allowlisted in `pnpm-workspace.yaml`)
    - build: `pnpm run vercel-build` (`prisma generate && tsc`)
 5. **Node.js Version**: 22.x (also pinned via `package.json` `engines`).
@@ -21,21 +21,21 @@ Set these for **Production** (and Preview if you use it):
 
 | Var | Notes |
 | --- | --- |
-| `DATABASE_URL` | **Pooled** connection string — see below. Required. |
+| `DATABASE_URL` | **Pooled** connection string, see below. Required. |
 | `NODE_ENV` | `production` |
-| `DASHBOARD_URL` | Admin dashboard origin — used for CORS and invitation redirects. |
-| `FRONTEND_URL` | Public site origin — used in email links. |
+| `DASHBOARD_URL` | Admin dashboard origin, used for CORS and invitation redirects. |
+| `FRONTEND_URL` | Public site origin, used in email links. |
 | `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY`, `CLERK_WEBHOOK_SECRET` | Clerk. |
 | `GMAIL_USER` + `GMAIL_APP_PASSWORD` *or* `SENDGRID_API_KEY` + `SENDGRID_FROM_EMAIL` | Email provider (optional; no email sent if unset). |
 | `SENDGRID_FROM_NAME`, `REVIEW_LINK_URL` | Optional. |
 
-`VERCEL=1` is injected by the platform — don't set it yourself. The code keys
+`VERCEL=1` is injected by the platform, don't set it yourself. The code keys
 off it to (a) cap the Postgres pool at 1 per instance and (b) use `waitUntil`
 so post-response notification emails actually finish.
 
 `PORT` is ignored on Vercel (no `listen`).
 
-## Database — must be pooled
+## Database, must be pooled
 
 Serverless runs many short-lived instances concurrently. A direct Postgres
 connection string will hit `too many connections` fast. Use one of:
@@ -46,7 +46,7 @@ connection string will hit `too many connections` fast. Use one of:
 - **Prisma Accelerate** – `prisma://…` URL (needs `@prisma/extension-accelerate`, not wired up here).
 
 Migrations are hand-written SQL in `sql/` / `prisma/migrations` and are **not**
-run by the build — apply them out of band against the database.
+run by the build, apply them out of band against the database.
 
 ## What does NOT run on Vercel
 
@@ -64,7 +64,7 @@ run by the build — apply them out of band against the database.
 
 `POST /webhooks/clerk` needs the raw request body for Svix verification. It's
 mounted before `express.json()` and Vercel passes the stream through to the
-Express app, so it works — but verify with a real Clerk delivery after the
+Express app, so it works, but verify with a real Clerk delivery after the
 first deploy (Clerk Dashboard → Webhooks → "Send example").
 
 ## Deploy

@@ -9,7 +9,7 @@ const isServerless = process.env.VERCEL === '1';
  *
  * On a long-running server a bare `void promise` is fine. On Vercel the
  * function can be frozen the instant the response is flushed, so unfinished
- * promises may never settle — `waitUntil` keeps the invocation alive until
+ * promises may never settle, `waitUntil` keeps the invocation alive until
  * they do. Off-Vercel this falls back to plain fire-and-forget. Never throws.
  */
 export function deferAfterResponse(promise: Promise<unknown>, label: string): void {
@@ -22,7 +22,7 @@ export function deferAfterResponse(promise: Promise<unknown>, label: string): vo
       waitUntil(guarded);
       return;
     } catch {
-      // No active Vercel request context — fall through to fire-and-forget.
+      // No active Vercel request context, fall through to fire-and-forget.
     }
   }
 

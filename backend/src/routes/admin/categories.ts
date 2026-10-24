@@ -7,7 +7,6 @@ import { parseOrThrow } from '../../lib/validate.js';
 import { asString, parseSort } from '../../lib/queryParams.js';
 import { categoryCreateSchema, categoryUpdateSchema } from '../../schemas/index.js';
 import { serializeCategory } from '../../lib/serializers.js';
-import { categoryHasBookings } from '../../lib/treatmentUsage.js';
 
 export const adminCategoriesRouter = Router();
 
@@ -126,9 +125,11 @@ adminCategoriesRouter.delete('/:id', async (req, res, next) => {
     const existing = await prisma.category.findUnique({ where: { id: req.params.id } });
     if (!existing) throw AppError.notFound('Category not found.');
 
-    // Counts bookings that use a treatment of this category as the primary
-    // service or as an extra service on a multi-service booking.
-    if (!(await categoryHasBookings(existing.id))) {
+    const bookingCount = await prisma.bookingRequest.count({
+      where: { treatment: { categoryId: existing.id } },
+    });
+
+    if (bookingCount === 0) {
       await prisma.$transaction([
         prisma.treatment.deleteMany({ where: { categoryId: existing.id } }),
         prisma.category.delete({ where: { id: existing.id } }),

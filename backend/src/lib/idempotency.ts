@@ -3,7 +3,7 @@
  * the same key within 24h returns the original response instead of
  * creating a duplicate booking request.
  *
- * LIMITATION: this is process-local — it does not survive a restart and
+ * LIMITATION: this is process-local, it does not survive a restart and
  * does not work across multiple API instances. That's fine for now (the
  * app runs as a single instance per API_DOCUMENTATION.md Appendix C /
  * §12.6), but if you scale horizontally before revisiting this, move it
@@ -23,7 +23,7 @@ const TTL_MS = 24 * 60 * 60 * 1000;
 const store = new Map<string, CachedResponse>();
 
 function hashBody(body: unknown): string {
-  // Cheap structural fingerprint — good enough to detect "same key, different
+  // Cheap structural fingerprint, good enough to detect "same key, different
   // body" misuse without pulling in a crypto hash for a dev-scale check.
   return JSON.stringify(body);
 }

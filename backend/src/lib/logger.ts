@@ -2,7 +2,7 @@ import pino from 'pino';
 import { env } from '../config/env.js';
 
 // pino-pretty is a devDependency and is not installed in serverless/production
-// bundles — only reach for it on a real local dev machine. Anywhere else
+// bundles, only reach for it on a real local dev machine. Anywhere else
 // (Vercel, Docker, prod) we emit plain JSON lines, which is what log
 // aggregators want anyway.
 const usePrettyTransport =

@@ -1,12 +1,12 @@
 -- ============================================================
--- 005 — Booking party size + total, and PX-/DV- reference split
+-- 005, Booking party size + total, and PX-/DV- reference split
 -- ============================================================
 -- Adds three columns to booking_requests:
---   * number_of_people — how many guests this one booking covers (>= 1)
---   * total_amount      — treatment price * number_of_people, frozen at
+--   * number_of_people, how many guests this one booking covers (>= 1)
+--   * total_amount     , treatment price * number_of_people, frozen at
 --                         creation time (a payment report reads this, so it
 --                         must NOT drift when a treatment's price changes)
---   * source            — the booking's own acquisition source, frozen at
+--   * source           , the booking's own acquisition source, frozen at
 --                         creation. NULL  => entered by staff in the
 --                         dashboard ("from us" / D'Vine). NOT NULL => came
 --                         through the public booking site ("from PixelSpring").
@@ -20,7 +20,7 @@
 -- numbered PX-YYYY-NNNNNN instead of DV-YYYY-NNNNNN. The per-year sequence
 -- is shared between the two prefixes (references stay globally unique and
 -- chronological); only the prefix differs. Existing references are left
--- exactly as they are — they are printed on PDFs and QR codes already.
+-- exactly as they are, they are printed on PDFs and QR codes already.
 --
 -- Apply:  psql "$DATABASE_URL" -f backend/sql/005_booking_party_size_px_reference.sql
 -- Then:   cd backend && npx prisma db pull && npx prisma generate
@@ -77,7 +77,7 @@ UPDATE booking_requests br
    AND br.total_amount IS NULL;
 
 -- ------------------------------------------------------------
--- 3. Reference generator — PX- for sourced bookings, DV- otherwise
+-- 3. Reference generator, PX- for sourced bookings, DV- otherwise
 -- ------------------------------------------------------------
 CREATE OR REPLACE FUNCTION generate_request_reference()
 RETURNS TRIGGER AS $$
@@ -106,7 +106,7 @@ $$ LANGUAGE plpgsql;
 -- Trigger `set_request_reference` already points at this function name.
 
 -- ------------------------------------------------------------
--- 4. booking_request_details view — expose the new columns
+-- 4. booking_request_details view, expose the new columns
 -- ------------------------------------------------------------
 -- CREATE OR REPLACE can only append columns, which is all we do here.
 CREATE OR REPLACE VIEW booking_request_details AS

@@ -3,9 +3,9 @@
 **Version:** 1.1
 **Base URL:** `https://api.dvinespa.com/v1`
 **Schema:** `deepseek_sql_20260810_c2dcb2.sql` (v2.0) + `002_clerk_integration_and_fixes.sql` + `003_realtime_notifications.sql`
-**Auth provider:** Clerk (dashboard only — public endpoints are unauthenticated)
+**Auth provider:** Clerk (dashboard only, public endpoints are unauthenticated)
 
-> **TODO before launch:** this document is the source of truth for now, but it should be backed by a generated **OpenAPI 3.1 spec** (`openapi.yaml`) served at `/docs` via Swagger UI (`swagger-ui-express`) once the routes are implemented. Recommended approach: annotate route handlers with `zod-to-openapi` (if using Zod for validation, which pairs well with the request bodies below) so the spec can't drift from the actual validators, rather than hand-writing YAML separately from this markdown. Track this as a follow-up ticket — don't let the two docs diverge.
+> **TODO before launch:** this document is the source of truth for now, but it should be backed by a generated **OpenAPI 3.1 spec** (`openapi.yaml`) served at `/docs` via Swagger UI (`swagger-ui-express`) once the routes are implemented. Recommended approach: annotate route handlers with `zod-to-openapi` (if using Zod for validation, which pairs well with the request bodies below) so the spec can't drift from the actual validators, rather than hand-writing YAML separately from this markdown. Track this as a follow-up ticket, don't let the two docs diverge.
 
 ---
 
@@ -19,7 +19,7 @@ Two audiences, two auth models:
 |---|---|---|
 | Public website / booking widget | `/categories`, `/treatments`, `/booking-requests` (create + lookup) | None |
 | Staff dashboard | everything under `/admin/*` | Clerk session token (Bearer JWT) |
-| Staff dashboard (realtime) | Socket.IO — new/updated bookings, notifications (§12) | Clerk session token at handshake |
+| Staff dashboard (realtime) | Socket.IO, new/updated bookings, notifications (§12) | Clerk session token at handshake |
 | Clerk | `/webhooks/clerk` | Svix signature (not a user session) |
 
 All requests/responses are `application/json; charset=utf-8`. All timestamps are ISO 8601 UTC (`2026-08-10T14:00:00Z`). All IDs are UUIDv4 strings unless noted.
@@ -38,7 +38,7 @@ Every `/admin/*` route requires:
 Authorization: Bearer <clerk_session_token>
 ```
 
-The frontend obtains this token from Clerk's client SDK (`getToken()`) and attaches it to every request. The API verifies it server-side — it never trusts a client-supplied user ID.
+The frontend obtains this token from Clerk's client SDK (`getToken()`) and attaches it to every request. The API verifies it server-side, it never trusts a client-supplied user ID.
 
 **Custom claim required:** by default a Clerk session token does not include your app's role. Configure a **Clerk JWT template** named `spa-api` that adds:
 
@@ -87,7 +87,7 @@ app.use('/admin', requireAuth);
 app.use('/admin/staff', requireRole('admin'));
 ```
 
-**Next.js (App Router) — `middleware.ts`:**
+**Next.js (App Router), `middleware.ts`:**
 
 ```ts
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
@@ -123,7 +123,7 @@ Every handler then resolves the local `staff` row via `sessionClaims.sub` (the C
 POST /webhooks/clerk
 ```
 
-No Clerk session on this route — it's server-to-server. Authenticity is proven by verifying the **Svix** signature Clerk attaches to every delivery, using `CLERK_WEBHOOK_SECRET`.
+No Clerk session on this route, it's server-to-server. Authenticity is proven by verifying the **Svix** signature Clerk attaches to every delivery, using `CLERK_WEBHOOK_SECRET`.
 
 ### 3.2 Signature verification
 
@@ -164,9 +164,9 @@ Always return `200` quickly once the event is durably stored (row inserted), and
 
 | Event | Action |
 |---|---|
-| `user.created` | Only acted on if the user was created via an **admin invitation** (see below) — insert/attach a `staff` row with `clerk_user_id`, `email`, `full_name`, `role` from `public_metadata.role`. |
+| `user.created` | Only acted on if the user was created via an **admin invitation** (see below), insert/attach a `staff` row with `clerk_user_id`, `email`, `full_name`, `role` from `public_metadata.role`. |
 | `user.updated` | Sync `email`, `full_name`, and `role` (if `public_metadata.role` changed) onto the matching `staff` row. |
-| `user.deleted` | Set `staff.is_active = false` (never hard-delete — booking requests and audit logs reference staff). |
+| `user.deleted` | Set `staff.is_active = false` (never hard-delete, booking requests and audit logs reference staff). |
 | `session.created` | Update `staff.last_login = now()` for the matching `clerk_user_id`. |
 
 Staff accounts are **provisioned by an admin**, not self-signup: `POST /admin/staff/invite` calls `clerkClient.invitations.createInvitation({ emailAddress, publicMetadata: { role } })`. Clerk emails the invite; when the user accepts, `user.created` fires and the webhook attaches the pre-set role.
@@ -212,7 +212,7 @@ Success:
 ```json
 { "success": true, "data": { }, "meta": { } }
 ```
-`meta` only appears on list endpoints (pagination — see §4.3).
+`meta` only appears on list endpoints (pagination, see §4.3).
 
 Error:
 ```json
@@ -243,9 +243,9 @@ List endpoints accept `?page=1&limit=20` (default `page=1`, `limit=20`, max `lim
 ### 4.4 Filtering & sorting
 
 - Filters are plain query params: `?status=new_request&category_id=<uuid>`.
-- Multiple values: repeat the param — `?status=new_request&status=contacted` (OR'd within the same field).
+- Multiple values: repeat the param, `?status=new_request&status=contacted` (OR'd within the same field).
 - Date ranges: `?date_from=2026-08-01&date_to=2026-08-31` (inclusive, applies to `preferred_date` unless noted).
-- Free text: `?search=` — matches name/phone/reference depending on resource (trigram search, case-insensitive, partial match).
+- Free text: `?search=`, matches name/phone/reference depending on resource (trigram search, case-insensitive, partial match).
 - Sorting: `?sort=field` ascending, `?sort=-field` descending. Default is documented per endpoint.
 
 ### 4.5 Rate limiting
@@ -320,7 +320,7 @@ Request body:
 Auth: staff. Partial update, same fields as create. `422` if the category has active treatments and you set `is_active=false` without `?cascade=true` (which also deactivates its treatments).
 
 ### `DELETE /admin/categories/:id`
-Auth: staff. Soft delete (`is_active=false`) — categories are never hard-deleted because `treatments.category_id` references them (`ON DELETE SET NULL`, which would orphan treatments otherwise).
+Auth: staff. Soft delete (`is_active=false`), categories are never hard-deleted because `treatments.category_id` references them (`ON DELETE SET NULL`, which would orphan treatments otherwise).
 
 ---
 
@@ -382,13 +382,13 @@ Auth: staff.
   "display_order": 5
 }
 ```
-Validation: `duration_minutes > 0`, `price > 0` (enforced at DB via `check_duration_positive`/`check_price_positive` — violations surface as `422`, not a raw `500`).
+Validation: `duration_minutes > 0`, `price > 0` (enforced at DB via `check_duration_positive`/`check_price_positive`, violations surface as `422`, not a raw `500`).
 
 ### `PATCH /admin/treatments/:id`
 Auth: staff. Partial update.
 
 ### `DELETE /admin/treatments/:id`
-Auth: staff. Soft delete (`is_active=false`) — never hard-deleted, since `booking_requests.treatment_id` has `ON DELETE RESTRICT`.
+Auth: staff. Soft delete (`is_active=false`), never hard-deleted, since `booking_requests.treatment_id` has `ON DELETE RESTRICT`.
 
 ---
 
@@ -440,16 +440,16 @@ Auth: staff. Same shape as one list row, plus `notes` and an embedded recent boo
     "...": "customer_summary fields",
     "notes": "First-time customer, interested in deep tissue",
     "recent_bookings": [
-      { "id": "...", "request_reference": "DV-2026-000001", "treatment_name": "Deep Tissue Massage", "preferred_date": "2026-08-13", "status": "new_request" }
+      { "id": "...", "request_reference": "PX-2026-000001", "treatment_name": "Deep Tissue Massage", "preferred_date": "2026-08-13", "status": "new_request" }
     ]
   }
 }
 ```
 
 ### `PATCH /admin/customers/:id`
-Auth: staff. Editable: `full_name`, `whatsapp_number`, `source`, `notes`. `phone_number` is intentionally **not** editable here (it's the dedupe key — changing it is a data-integrity operation, expose it via a separate `POST /admin/customers/:id/merge` if ever needed, not covered in v1).
+Auth: staff. Editable: `full_name`, `whatsapp_number`, `source`, `notes`. `phone_number` is intentionally **not** editable here (it's the dedupe key, changing it is a data-integrity operation, expose it via a separate `POST /admin/customers/:id/merge` if ever needed, not covered in v1).
 
-Customers have no public endpoints — they're only created implicitly via `POST /booking-requests` (§8.1).
+Customers have no public endpoints, they're only created implicitly via `POST /booking-requests` (§8.1).
 
 ---
 
@@ -461,6 +461,8 @@ Maps to `booking_requests`, enriched by the `booking_request_details` view.
 
 Creates a booking request. If `phone_number` matches an existing customer, that customer is reused (`customers.phone_number` is `UNIQUE`); otherwise a new customer row is created first.
 
+Supports **one or more treatments**. Prefer `treatment_ids` (array). Legacy single `treatment_id` is still accepted. The first id becomes `booking_requests.treatment_id` (primary); all ids are stored in `booking_request_treatments`.
+
 Request body:
 ```json
 {
@@ -468,7 +470,7 @@ Request body:
   "phone_number": "+250788999999",
   "whatsapp_number": "+250788999999",
   "source": "instagram",
-  "treatment_id": "9f3a...",
+  "treatment_ids": ["9f3a...", "a2b3..."],
   "preferred_date": "2026-08-13",
   "preferred_time": "15:00",
   "channel": "website",
@@ -481,12 +483,15 @@ Request body:
 | `full_name` | ✅ | |
 | `phone_number` | ✅ | E.164 format recommended; dedupe key |
 | `whatsapp_number` | | defaults to `phone_number` if omitted |
-| `source` | | only used the *first* time this phone number is seen — ignored for existing customers |
-| `treatment_id` | ✅ | must reference an active treatment |
+| `source` | | only used the *first* time this phone number is seen, ignored for existing customers |
+| `treatment_ids` | ✅* | array of active treatment UUIDs (min 1). Preferred. |
+| `treatment_id` | ✅* | legacy single UUID; used when `treatment_ids` is omitted |
 | `preferred_date` | ✅ | must be today or later |
 | `preferred_time` | ✅ | `HH:MM`, 24h |
 | `channel` | | defaults `website`; how *this* request came in |
 | `notes` | | freeform, stored as the *customer's* `notes` on first creation, not on `booking_requests` (staff-only notes live in `staff_notes`) |
+
+\* Provide either `treatment_ids` or `treatment_id`.
 
 Response `201`:
 ```json
@@ -494,9 +499,13 @@ Response `201`:
   "success": true,
   "data": {
     "id": "a1b2...",
-    "request_reference": "DV-2026-000007",
+    "request_reference": "PX-2026-000007",
     "status": "new_request",
     "treatment": { "id": "9f3a...", "name": "Deep Tissue Massage", "price": "30000.00", "duration_minutes": 60 },
+    "treatments": [
+      { "id": "9f3a...", "name": "Deep Tissue Massage", "price": "30000.00", "duration_minutes": 60 },
+      { "id": "a2b3...", "name": "Hot Stone", "price": "35000.00", "duration_minutes": 75 }
+    ],
     "preferred_date": "2026-08-13",
     "preferred_time": "15:00",
     "created_at": "2026-08-10T08:00:00Z"
@@ -504,7 +513,11 @@ Response `201`:
 }
 ```
 
-Errors: `404` unknown `treatment_id`, `422` inactive treatment or past `preferred_date`, `409` if an `Idempotency-Key` replay is detected with a *different* body.
+`treatment` is the primary (first) service; `treatments` is the full ordered list.
+
+Errors: `404` unknown treatment id(s), `422` inactive treatment or past `preferred_date`, `409` if an `Idempotency-Key` replay is detected with a *different* body.
+
+New booking references are generated as `PX-YYYY-NNNNNN` for requests that arrive through the public booking site (they carry a `source`) and `DV-YYYY-NNNNNN` for bookings staff enter in the dashboard (see `generate_request_reference()` / SQL `005_booking_party_size_px_reference.sql`). The per-year sequence is shared.
 
 ### 8.2 `GET /booking-requests/lookup` (public)
 
@@ -512,13 +525,15 @@ Status self-check for a customer, without exposing all bookings by reference alo
 
 | Query param | Required | Notes |
 |---|---|---|
-| `reference` | ✅ | e.g. `DV-2026-000007` |
-| `phone_number` | ✅ | must match the booking's customer — acts as a shared secret |
+| `reference` | ✅ | e.g. `PX-2026-000007` |
+| `phone_number` | ✅ | must match the booking's customer, acts as a shared secret |
 
 ```json
-{ "success": true, "data": { "request_reference": "DV-2026-000007", "status": "confirmed", "treatment_name": "Deep Tissue Massage", "confirmed_date": "2026-08-13", "confirmed_time": "15:00" } }
+{ "success": true, "data": { "request_reference": "PX-2026-000007", "status": "confirmed", "treatment_name": "Deep Tissue Massage, Hot Stone", "treatments": [{ "id": "9f3a...", "name": "Deep Tissue Massage", "price": "30000.00", "duration_minutes": 60 }], "confirmed_date": "2026-08-13", "confirmed_time": "15:00" } }
 ```
-`404` if the reference doesn't exist or the phone number doesn't match (same response either way, to avoid leaking which references are valid).
+`treatment_name` is a comma-joined list when multiple services were selected. `404` if the reference doesn't exist or the phone number doesn't match (same response either way, to avoid leaking which references are valid).
+
+Admin list/detail responses also include a `treatments` array alongside the primary `treatment` object.
 
 ### 8.3 `GET /admin/booking-requests`
 
@@ -543,7 +558,7 @@ Auth: staff. Backed by `booking_request_details`.
   "data": [
     {
       "id": "a1b2...",
-      "request_reference": "DV-2026-000007",
+      "request_reference": "PX-2026-000007",
       "status": "new_request",
       "customer": { "id": "c4d5...", "full_name": "Sarah Mucyo", "phone_number": "+250788999999", "whatsapp_number": "+250788999999" },
       "treatment": { "id": "9f3a...", "name": "Deep Tissue Massage", "price": "30000.00", "duration_minutes": 60, "category_name": "Massage Therapy" },
@@ -564,7 +579,7 @@ Auth: staff. Backed by `booking_request_details`.
 Auth: staff. Full detail, plus embedded `audit_trail` (last 10 entries from `audit_logs`).
 
 ### 8.5 `PATCH /admin/booking-requests/:id`
-Auth: staff. Updates status and/or scheduling fields. `contacted_at`/`confirmed_at`/`completed_at`/`cancelled_at` and the `audit_logs` row are set automatically by DB triggers — do not send them.
+Auth: staff. Updates status and/or scheduling fields. `contacted_at`/`confirmed_at`/`completed_at`/`cancelled_at` and the `audit_logs` row are set automatically by DB triggers, do not send them.
 
 ```json
 { "status": "confirmed", "confirmed_date": "2026-08-13", "confirmed_time": "15:00", "staff_notes": "Confirmed via phone." }
@@ -582,13 +597,13 @@ new_request → contacted → confirmed → completed
 ```
 Any other transition (e.g. `completed → new_request`) returns `409 CONFLICT`.
 
-There is intentionally **no `DELETE`** on booking requests — cancel via `PATCH { "status": "cancelled" }` instead, so history and audit logs stay intact.
+There is intentionally **no `DELETE`** on booking requests, cancel via `PATCH { "status": "cancelled" }` instead, so history and audit logs stay intact.
 
 ---
 
 ## 9. Staff
 
-Maps to `staff`. Admin-only — never exposed publicly.
+Maps to `staff`. Admin-only, never exposed publicly.
 
 ### `GET /admin/staff`
 Auth: admin.
@@ -609,7 +624,7 @@ Auth: admin.
 Note: `password_hash` and `clerk_user_id` are never included in API responses.
 
 ### `POST /admin/staff/invite`
-Auth: admin. Does **not** insert into `staff` directly — it calls Clerk to send an invitation; the `staff` row is created by the webhook once accepted (§3.3).
+Auth: admin. Does **not** insert into `staff` directly, it calls Clerk to send an invitation; the `staff` row is created by the webhook once accepted (§3.3).
 
 ```json
 { "email": "new.staff@dvinespa.com", "full_name": "New Staff", "role": "staff" }
@@ -623,13 +638,13 @@ Response `202` (accepted, pending):
 Auth: admin. Editable: `role`, `is_active`, `phone_number`. Changing `role` also updates `public_metadata.role` on the Clerk user via `clerkClient.users.updateUserMetadata`.
 
 ### `DELETE /admin/staff/:id`
-Auth: admin. Soft delete only (`is_active=false`) — a hard delete would violate `audit_logs.user_id` and `booking_requests` history. Also revokes active Clerk sessions for that user.
+Auth: admin. Soft delete only (`is_active=false`), a hard delete would violate `audit_logs.user_id` and `booking_requests` history. Also revokes active Clerk sessions for that user.
 
 ---
 
 ## 10. Audit Logs
 
-Maps to `audit_logs`. Read-only via the API — rows are written exclusively by the `log_booking_status_change` trigger.
+Maps to `audit_logs`. Read-only via the API, rows are written exclusively by the `log_booking_status_change` trigger.
 
 ### `GET /admin/audit-logs`
 Auth: staff.
@@ -703,7 +718,7 @@ Auth: staff. Point-in-time KPIs (no filters).
 
 ## 12. Realtime / WebSocket (dashboard only)
 
-Public endpoints have no realtime channel — only the staff dashboard needs live updates (new requests, status changes, cancellations). Built on **Socket.IO** on top of the same Node process as the REST API, fed by **Postgres `LISTEN/NOTIFY`** so any DB write — from the API, a script, or a future second writer — reaches connected dashboards without extra application code at each call site.
+Public endpoints have no realtime channel, only the staff dashboard needs live updates (new requests, status changes, cancellations). Built on **Socket.IO** on top of the same Node process as the REST API, fed by **Postgres `LISTEN/NOTIFY`** so any DB write, from the API, a script, or a future second writer, reaches connected dashboards without extra application code at each call site.
 
 ### 12.1 Why LISTEN/NOTIFY instead of emitting from route handlers
 
@@ -715,7 +730,7 @@ The API already relies on DB triggers for `audit_logs` and `request_reference`; 
 wss://api.dvinespa.com/socket.io/?EIO=4&transport=websocket
 ```
 
-Auth happens at handshake, using the same Clerk session token as REST calls — there is no separate realtime token.
+Auth happens at handshake, using the same Clerk session token as REST calls, there is no separate realtime token.
 
 ```ts
 // dashboard client
@@ -776,7 +791,7 @@ pgListener.on('notification', (msg) => {
   }
 });
 
-// Reconnect the LISTEN client on drop — pg does not auto-resubscribe.
+// Reconnect the LISTEN client on drop, pg does not auto-resubscribe.
 pgListener.on('error', () => setTimeout(() => bootstrapPgListener(), 1000));
 ```
 
@@ -804,7 +819,7 @@ socket.on('notification:new', (payload) => {
 });
 ```
 
-Prefer `invalidateQueries` (re-fetch from the REST API) over trusting the socket payload as the full source of truth — it's a small extra round trip but avoids the dashboard's local cache drifting from Postgres if an event is ever missed.
+Prefer `invalidateQueries` (re-fetch from the REST API) over trusting the socket payload as the full source of truth, it's a small extra round trip but avoids the dashboard's local cache drifting from Postgres if an event is ever missed.
 
 ### 12.5 Reconnection & missed events
 
@@ -812,7 +827,7 @@ Socket.IO buffers nothing server-side across a disconnect by default, so a clien
 
 ### 12.6 Scaling beyond one instance
 
-Not needed at launch (single Node process). If you later run multiple API instances behind a load balancer, add `@socket.io/redis-adapter` — otherwise a notification received by instance A never reaches sockets connected to instance B:
+Not needed at launch (single Node process). If you later run multiple API instances behind a load balancer, add `@socket.io/redis-adapter`, otherwise a notification received by instance A never reaches sockets connected to instance B:
 
 ```ts
 import { createAdapter } from '@socket.io/redis-adapter';
@@ -824,11 +839,11 @@ await Promise.all([pubClient.connect(), subClient.connect()]);
 io.adapter(createAdapter(pubClient, subClient));
 ```
 
-Only one instance should run the `pgListener` (or all of them can — `pg_notify` broadcasts to every `LISTEN`ing connection, and the Redis adapter dedupes the resulting Socket.IO emits across instances).
+Only one instance should run the `pgListener` (or all of them can, `pg_notify` broadcasts to every `LISTEN`ing connection, and the Redis adapter dedupes the resulting Socket.IO emits across instances).
 
 ---
 
-## Appendix A — Environment variables
+## Appendix A, Environment variables
 
 | Variable | Used by |
 |---|---|
@@ -838,23 +853,23 @@ Only one instance should run the `pgListener` (or all of them can — `pg_notify
 | `DATABASE_URL` | Postgres connection string (used by both the API and the `pgListener` realtime bridge) |
 | `REDIS_URL` | only if scaling to >1 API instance (§12.6) |
 
-## Appendix B — Database changes in this revision
+## Appendix B, Database changes in this revision
 
 See `002_clerk_integration_and_fixes.sql` and `003_realtime_notifications.sql` for the full migrations. Summary:
 
-1. **`staff.clerk_user_id`** added (unique) — links a Clerk identity to a staff row; `password_hash` made nullable since Clerk now owns credentials.
+1. **`staff.clerk_user_id`** added (unique), links a Clerk identity to a staff row; `password_hash` made nullable since Clerk now owns credentials.
 2. **`webhook_events`** table added for idempotent webhook processing.
 3. **Fixed a real bug**: `generate_request_reference()` cast a string containing a hyphen (`'2026-000006'`) to `INT`, which would throw once a second request existed in the same year; it was also not concurrency-safe. Replaced with an atomic counter table (`request_reference_counters`).
 4. **`booking_requests.channel`** added to distinguish how a request arrived from the customer's original acquisition `source`.
 5. Added trigram (`pg_trgm`) indexes for `?search=` on customers and treatments, and a composite `(status, preferred_date)` index for the dashboard's most common filter combination.
 6. `staff.email` converted to `CITEXT` for case-insensitive matching against Clerk.
-7. **`notify_booking_change`, `notify_new_booking_request`, `notify_booking_status_alert`** triggers added — `pg_notify` on `booking_updates` and `dashboard_notifications` channels, consumed by the Socket.IO bridge in §12.
+7. **`notify_booking_change`, `notify_new_booking_request`, `notify_booking_status_alert`** triggers added, `pg_notify` on `booking_updates` and `dashboard_notifications` channels, consumed by the Socket.IO bridge in §12.
 
-## Appendix C — Backend stack recommendation
+## Appendix C, Backend stack recommendation
 
-- **Runtime**: Node.js (TypeScript), on a long-running process — not serverless functions, since those can't hold a persistent WebSocket connection.
+- **Runtime**: Node.js (TypeScript), on a long-running process, not serverless functions, since those can't hold a persistent WebSocket connection.
 - **Framework**: Express (matches the middleware examples in §2.3) or Fastify.
 - **ORM**: Prisma or Drizzle over the existing Postgres schema.
-- **Realtime**: Socket.IO + Postgres `LISTEN/NOTIFY` (§12) — no extra infra (Redis, third-party realtime service) needed until you scale past one instance.
-- **Host**: Railway, Render, or Fly.io — all support a single always-on process with WebSockets with minimal ops overhead compared to raw EC2/Kubernetes at this scale.
+- **Realtime**: Socket.IO + Postgres `LISTEN/NOTIFY` (§12), no extra infra (Redis, third-party realtime service) needed until you scale past one instance.
+- **Host**: Railway, Render, or Fly.io, all support a single always-on process with WebSockets with minimal ops overhead compared to raw EC2/Kubernetes at this scale.
 - **API docs**: Swagger UI generated from an OpenAPI spec, see the note at the top of this document.

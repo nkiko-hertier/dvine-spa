@@ -6,11 +6,11 @@ import { resolveActiveStaff } from '../lib/resolveStaff.js';
 
 /**
  * Requires a valid Clerk session AND a matching, active `staff` row.
- * Mount `clerkMiddleware()` (from @clerk/express) globally in app.ts first —
+ * Mount `clerkMiddleware()` (from @clerk/express) globally in app.ts first,
  * this only reads what that middleware already attached to the request.
  *
  * On success, `req.staff` is populated (see src/types/express.d.ts) so
- * downstream handlers never touch Clerk's `userId` directly — they use
+ * downstream handlers never touch Clerk's `userId` directly, they use
  * the local primary key, which is what audit_logs.user_id etc. expect.
  */
 export const requireAuth: RequestHandler = async (req, _res, next) => {
@@ -23,7 +23,7 @@ export const requireAuth: RequestHandler = async (req, _res, next) => {
     const staff = await resolveActiveStaff(userId);
     if (!staff) {
       // A verified Clerk session with no (or a deactivated) local staff
-      // row is a config/sync problem, not a credentials problem — but
+      // row is a config/sync problem, not a credentials problem, but
       // from the caller's point of view it's still "you can't do this."
       throw AppError.forbidden('No active staff account is linked to this session.');
     }
