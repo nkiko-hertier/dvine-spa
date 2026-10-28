@@ -17,7 +17,7 @@ export const categoryUpdateSchema = categoryCreateSchema.partial().extend({
 });
 
 export const treatmentCreateSchema = z.object({
-  category_id: z.string().uuid().optional(),
+  category_id: z.string().optional(),
   name: z.string().min(1).max(100),
   description: z.string().optional(),
   duration_minutes: z.number().int().positive(),
