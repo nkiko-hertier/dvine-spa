@@ -7,7 +7,7 @@ on:
 
 jobs:
   docker-build-and-boot:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     env:
       POSTGRES_USER: postgres
